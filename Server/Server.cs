@@ -11,7 +11,6 @@ public class Server {
     private readonly MemoryPool<byte> memoryPool = MemoryPool<byte>.Shared;
     public readonly List<Client> Clients = new List<Client>();
     public readonly Logger Logger = new Logger("Server");
-    private static int HeaderSize => Marshal.SizeOf<PacketHeader>();
     public async Task Listen(ushort port) {
         TcpListener listener = TcpListener.Create(port);
 
@@ -34,12 +33,12 @@ public class Server {
         Span<byte> data = memory.Span;
 
         MemoryMarshal.Write(data, ref header);
-        MemoryMarshal.Write(data[HeaderSize..], ref packet);
+        MemoryMarshal.Write(data[Constants.HeaderSize..], ref packet);
     }
 
     // broadcast packets to all clients
     public async void Broadcast<T>(T packet, Client? sender = null) where T : unmanaged, IPacket {
-        IMemoryOwner<byte> memory = memoryPool.Rent(Marshal.SizeOf<T>() + HeaderSize);
+        IMemoryOwner<byte> memory = memoryPool.Rent(Marshal.SizeOf<T>() + Constants.HeaderSize);
 
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
@@ -97,7 +96,7 @@ public class Server {
                         throw new Exception($"First packet was not init, instead it was {header.Type}");
                     }
 
-                    ConnectPacket connect = MemoryMarshal.Read<ConnectPacket>(memory.Memory.Span[HeaderSize..size]);
+                    ConnectPacket connect = MemoryMarshal.Read<ConnectPacket>(memory.Memory.Span[Constants.HeaderSize..size]);
                     lock (Clients) {
                         switch (connect.ConnectionType) {
                             case ConnectionTypes.FirstConnection: {
@@ -136,7 +135,10 @@ public class Server {
 
                 
                 // todo support variable length packets when they show up
-                if (header.Sender == PacketSender.Client) await Broadcast(memory, client);
+                if (header.Sender == PacketSender.Client) {
+                    Logger.Warn($"broadcasting {header.Type}");
+                    await Broadcast(memory, client);
+                }
                 else {
                     //todo handle server packets :)
                 }
