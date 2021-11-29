@@ -94,7 +94,7 @@ public class Server {
                 if (first) {
                     first = false;
                     if (header.Type != PacketType.Connect) {
-                        throw new Exception("First packet was not init");
+                        throw new Exception($"First packet was not init, instead it was {header.Type}");
                     }
 
                     ConnectPacket connect = MemoryMarshal.Read<ConnectPacket>(memory.Memory.Span[HeaderSize..size]);

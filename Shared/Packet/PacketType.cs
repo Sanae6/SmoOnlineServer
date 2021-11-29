@@ -2,9 +2,9 @@
 
 public enum PacketType {
     Unknown,
-    Connect,
     Player,
     Game,
+    Connect,
     Disconnect,
     Costume,
     Shine,
