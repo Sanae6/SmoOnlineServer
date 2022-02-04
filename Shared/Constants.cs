@@ -8,8 +8,8 @@ namespace Shared;
 public static class Constants {
     public const int MaxPacketSize = 256;
     public const int MaxClients = 4;
-    public static int HeaderSize => Marshal.SizeOf<PacketHeader>();
-    
+    public static int HeaderSize { get; } = Marshal.SizeOf<PacketHeader>();
+
     // dictionary of packet types to packet
     public static readonly Dictionary<Type, PacketAttribute> Packets = Assembly
         .GetExecutingAssembly()

@@ -8,18 +8,48 @@ using Shared.Packet;
 using Shared.Packet.Packets;
 
 TcpClient client = new TcpClient("127.0.0.1", 1027);
-Guid ownId = new Guid();
+Guid ownId = new Guid(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 Guid otherId = Guid.Empty;
 Logger logger = new Logger("Client");
 NetworkStream stream = client.GetStream();
-PacketHeader coolHeader = new PacketHeader {
-    Type = PacketType.Connect,
-    Sender = PacketSender.Client,
-    Id = ownId
-};
 
 int e = 0;
 double d = 0;
+Vector3 basePoint = Vector3.Zero;
+PlayerPacket? playerPacket = null;
+
+async void Funny() {
+    Memory<byte> memory = new Memory<byte>(new byte[256]);
+
+    {
+        PacketHeader header = new PacketHeader {
+            Id = ownId,
+            Type = PacketType.Player
+        };
+        MemoryMarshal.Write(memory.Span, ref header);
+    }
+
+    while (true) {
+        d += Math.PI / 32;
+        if (playerPacket == null) {
+            // logger.Warn($"Waiting...");
+            await Task.Delay(300);
+            continue;
+        }
+
+        PlayerPacket packet = playerPacket.Value;
+        Vector3 pos = basePoint;
+        pos.X += 100f * (float) Math.Cos(d);
+        pos.Y += 300f;
+        pos.Z += 100f * (float) Math.Sin(d);
+        packet.Position = pos;
+        packet.Serialize(memory.Span[Constants.HeaderSize..]);
+        logger.Warn($"Current strs:{packet.Stage}-{packet.Act}-{packet.SubAct} {packet.Is2d} {packet.ThrowingCap} {packet.IsIt}");
+        
+        await stream.WriteAsync(memory);
+        await Task.Delay(50);
+    }
+}
 
 async Task S() {
     IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(256);
@@ -34,23 +64,26 @@ async Task S() {
                 continue;
             }
 
-            d += Math.PI / 180;
+            header.Id = ownId;
+            MemoryMarshal.Write(owner.Memory.Span, ref header);
             unsafe {
-                MemoryMarshal.Write(owner.Memory.Span, ref coolHeader);
-                // unbelievably shitty way to marshal playerpacket
-                fixed (byte* basePtr = owner.Memory.Span) {
-                    byte* dataPtr = basePtr + Constants.HeaderSize;
-                    Vector3 pos = Unsafe.Read<Vector3>(dataPtr);
-                    pos.X += 1000f * (float)Math.Cos(d);
-                    pos.Z += 1000f * (float)Math.Sin(d);
-                    Unsafe.Write(dataPtr, pos);
+                fixed (byte* data = owner.Memory.Span[Constants.HeaderSize..]) {
+                    logger.Error($"{Marshal.OffsetOf<PlayerPacket>(nameof(PlayerPacket.AnimationBlendWeights))} {Marshal.OffsetOf<PlayerPacket>(nameof(PlayerPacket.AnimationRate))}");
+                    PlayerPacket packet = Marshal.PtrToStructure<PlayerPacket>((IntPtr) data);
+                    playerPacket = packet;
+                    basePoint = packet.Position;
                 }
             }
-            Console.WriteLine($"aargh {coolHeader.Id} {owner.Memory.Span[..256].Hex()}");
-            await stream.WriteAsync(owner.Memory);
+
+            // packet.SubAct = "";
         }
     }
 }
+
+PacketHeader coolHeader = new PacketHeader {
+    Type = PacketType.Connect,
+    Id = ownId
+};
 IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(256);
 MemoryMarshal.Write(owner.Memory.Span[..], ref coolHeader);
 ConnectPacket connect = new ConnectPacket {
@@ -60,4 +93,6 @@ MemoryMarshal.Write(owner.Memory.Span[Constants.HeaderSize..256], ref connect);
 await stream.WriteAsync(owner.Memory);
 coolHeader.Type = PacketType.Player;
 MemoryMarshal.Write(owner.Memory.Span[..], ref coolHeader);
+logger.Info("Connected");
+Task.Run(Funny);
 await S();

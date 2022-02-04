@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Shared;
@@ -12,12 +13,16 @@ public class Server {
     public readonly List<Client> Clients = new List<Client>();
     public readonly Logger Logger = new Logger("Server");
     public async Task Listen(ushort port) {
-        TcpListener listener = TcpListener.Create(port);
-
-        listener.Start();
+        Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        serverSocket.Bind(new IPEndPoint(IPAddress.Loopback, port));
+        serverSocket.Listen();
+            
+        Logger.Info($"Listening on port {port}");
 
         while (true) {
-            Socket socket = await listener.AcceptSocketAsync();
+            Socket socket = await serverSocket.AcceptAsync();
+            
+            Logger.Warn("ok");
 
             if (Clients.Count > Constants.MaxClients) {
                 Logger.Warn("Turned away client due to max clients");
@@ -37,13 +42,12 @@ public class Server {
     }
 
     // broadcast packets to all clients
-    public async void Broadcast<T>(T packet, Client? sender = null) where T : unmanaged, IPacket {
+    public async Task Broadcast<T>(T packet, Client? sender = null) where T : unmanaged, IPacket {
         IMemoryOwner<byte> memory = memoryPool.Rent(Marshal.SizeOf<T>() + Constants.HeaderSize);
 
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
             Type = Constants.Packets[typeof(T)].Type,
-            Sender = PacketSender.Server // todo maybe use client?  
         };
         FillPacket(header, packet, memory.Memory);
         await Broadcast(memory, sender);
@@ -98,17 +102,10 @@ public class Server {
 
                     ConnectPacket connect = MemoryMarshal.Read<ConnectPacket>(memory.Memory.Span[Constants.HeaderSize..size]);
                     lock (Clients) {
+                        bool firstConn = false;
                         switch (connect.ConnectionType) {
                             case ConnectionTypes.FirstConnection: {
-                                // do any cleanup required when it comes to new clients
-                                List<Client> toDisconnect = Clients.FindAll(c => c.Id == header.Id && c.Connected && c.Socket != null);
-                                Clients.RemoveAll(c => c.Id == header.Id);
-                    
-                                client.Id = header.Id;
-                                Clients.Add(client);
-
-                                foreach (Client c in toDisconnect) c.Socket!.DisconnectAsync(false);
-                                // done disconnecting and removing stale clients with the same id
+                                firstConn = true;
                                 break;
                             }
                             case ConnectionTypes.Reconnecting: {
@@ -117,31 +114,36 @@ public class Server {
                                     newClient.Socket = client.Socket;
                                     client = newClient;
                                 } else {
-                                    // TODO MAJOR: IF CLIENT COULD NOT BE FOUND, SERVER SHOULD GRACEFULLY TELL CLIENT THAT ON DISCONNECT
-                                    // can be done via disconnect packet when that gets more data?
-                                    throw new Exception("Could not find a suitable client to reconnect as");
+                                    firstConn = true;
                                 }
                                 break;
                             }
                             default:
                                 throw new Exception($"Invalid connection type {connect.ConnectionType}");
                         }
+                        if (firstConn) {
+                            // do any cleanup required when it comes to new clients
+                            List<Client> toDisconnect = Clients.FindAll(c => c.Id == header.Id && c.Connected && c.Socket != null);
+                            Clients.RemoveAll(c => c.Id == header.Id);
+                    
+                            client.Id = header.Id;
+                            Clients.Add(client);
+
+                            Parallel.ForEachAsync(toDisconnect, (c, token) => c.Socket!.DisconnectAsync(false, token));
+                            // Broadcast(connect, client);
+                            // done disconnecting and removing stale clients with the same id
+                        }
                     }
                     
                     Logger.Info($"Client {socket.RemoteEndPoint} connected.");
 
-                    continue;
+                    // continue;
                 }
 
                 
-                // todo support variable length packets when they show up
-                if (header.Sender == PacketSender.Client) {
-                    Logger.Warn($"broadcasting {header.Type}");
-                    await Broadcast(memory, client);
-                }
-                else {
-                    //todo handle server packets :)
-                }
+                // todo support variable length packets if they show up
+                // Logger.Warn($"broadcasting {header.Type}");
+                await Broadcast(memory, client);
             }
         }
         catch (Exception e) {
@@ -154,7 +156,11 @@ public class Server {
 
             memory?.Dispose();
         }
-        client.Dispose();
+
+        Clients.Remove(client);
+        Broadcast(new DisconnectPacket(), client).ContinueWith(_ => {
+            client.Dispose();
+        });
     }
 
     private static PacketHeader GetHeader(Span<byte> data) {

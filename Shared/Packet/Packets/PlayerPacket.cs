@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Shared.Packet.Packets;
 
@@ -9,14 +10,18 @@ public struct PlayerPacket : IPacket {
 
     public Vector3 Position;
     public Quaternion Rotation;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
     public float[] AnimationBlendWeights;
     public float AnimationRate;
-    public bool Flat;
+    public bool Is2d;
     public bool ThrowingCap;
-    public bool Seeker;
+    public bool IsIt;
     public int ScenarioNum;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
     public string Stage;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
     public string Act;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
     public string SubAct;
 
     public void Serialize(Span<byte> data) {
@@ -26,16 +31,19 @@ public struct PlayerPacket : IPacket {
         MemoryMarshal.Write(data[offset..], ref Rotation);
         offset += Marshal.SizeOf<Quaternion>();
         AnimationBlendWeights.CopyTo(MemoryMarshal.Cast<byte, float>(data[offset..(offset += 4 * 6)]));
-        MemoryMarshal.Write(data[(offset += 4)..], ref AnimationRate);
+        MemoryMarshal.Write(data[offset..], ref AnimationRate);
         offset += 4;
-        MemoryMarshal.Write(data[offset++..], ref Flat);
+        MemoryMarshal.Write(data[offset++..], ref Is2d);
         MemoryMarshal.Write(data[offset++..], ref ThrowingCap);
-        MemoryMarshal.Write(data[offset++..], ref Seeker);
-        MemoryMarshal.Write(data[(offset += 4)..], ref ScenarioNum);
-        Span<char> strData = MemoryMarshal.Cast<byte, char>(data[offset..]);
-        Stage.CopyTo(strData[..NameSize]);
-        Act.CopyTo(strData[NameSize..(2 * NameSize)]);
-        SubAct.CopyTo(strData[(2 * NameSize)..(3 * NameSize)]);
+        MemoryMarshal.Write(data[offset++..], ref IsIt);
+        MemoryMarshal.Write(data[offset..], ref ScenarioNum);
+        offset += 5;
+        // Span<char> strData = MemoryMarshal.Cast<byte, char>(data[offset..]);
+        Encoding.UTF8.GetBytes(Stage).CopyTo(data[offset..(offset + NameSize)]);
+        offset += NameSize;
+        Encoding.UTF8.GetBytes(Act).CopyTo(data[offset..(offset + NameSize)]);
+        offset += NameSize;
+        Encoding.UTF8.GetBytes(SubAct).CopyTo(data[offset..]);
     }
 
     public void Deserialize(Span<byte> data) {
@@ -44,17 +52,18 @@ public struct PlayerPacket : IPacket {
         offset += Marshal.SizeOf<Vector3>();
         Rotation = MemoryMarshal.Read<Quaternion>(data[offset..]);
         offset += Marshal.SizeOf<Quaternion>();
-        AnimationBlendWeights = MemoryMarshal.Cast<byte, float>(data[offset..(offset + 4 * 6)]).ToArray();
-        offset += 4 * 6;
-        AnimationRate = MemoryMarshal.Read<float>(data[(offset += 4)..]);
-        offset += 4;
-        Flat = MemoryMarshal.Read<bool>(data[offset++..]);
+        AnimationBlendWeights = MemoryMarshal.Cast<byte, float>(data[offset..(offset += 4 * 6)]).ToArray();
+        AnimationRate = MemoryMarshal.Read<float>(data[offset..(offset += 4)]);
+        Is2d = MemoryMarshal.Read<bool>(data[offset++..]);
         ThrowingCap = MemoryMarshal.Read<bool>(data[offset++..]);
-        Seeker = MemoryMarshal.Read<bool>(data[offset++..]);
-        ScenarioNum = MemoryMarshal.Read<int>(data[(offset += 4)..]);
-        Span<char> strData = MemoryMarshal.Cast<byte, char>(data[offset..]);
-        Stage = new string(strData[..NameSize].TrimEnd('\0'));
-        Act = new string(strData[NameSize..(2 * NameSize)].TrimEnd('\0'));
-        SubAct = new string(strData[(2 * NameSize)..(3 * NameSize)].TrimEnd('\0'));
+        IsIt = MemoryMarshal.Read<bool>(data[offset++..]);
+        // offset++; // padding
+        ScenarioNum = MemoryMarshal.Read<int>(data[offset..]);
+        offset += 5;
+        Stage = new string(Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0'));
+        offset += NameSize;
+        Act = new string(Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0'));
+        offset += NameSize;
+        SubAct = new string(Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0'));
     }
 }

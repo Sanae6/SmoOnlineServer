@@ -2,6 +2,7 @@
 
 [Packet(PacketType.Disconnect)]
 public struct DisconnectPacket : IPacket {
+    //empty packet
     public void Serialize(Span<byte> data) {
         
     }

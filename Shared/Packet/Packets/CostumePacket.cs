@@ -6,7 +6,9 @@ namespace Shared.Packet.Packets;
 public struct CostumePacket : IPacket {
     public const int CostumeNameSize = 0x20;
 
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CostumeNameSize)]
     public string BodyName;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CostumeNameSize)]
     public string CapName;
     public void Serialize(Span<byte> data) {
         Span<char> strData = MemoryMarshal.Cast<byte, char>(data);
