@@ -14,7 +14,7 @@ public class Server {
     public readonly Logger Logger = new Logger("Server");
     public async Task Listen(ushort port) {
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        serverSocket.Bind(new IPEndPoint(IPAddress.Loopback, port));
+        serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
         serverSocket.Listen();
             
         Logger.Info($"Listening on port {port}");
@@ -130,14 +130,11 @@ public class Server {
                             Clients.Add(client);
 
                             Parallel.ForEachAsync(toDisconnect, (c, token) => c.Socket!.DisconnectAsync(false, token));
-                            // Broadcast(connect, client);
                             // done disconnecting and removing stale clients with the same id
                         }
                     }
                     
                     Logger.Info($"Client {socket.RemoteEndPoint} connected.");
-
-                    // continue;
                 }
 
                 
