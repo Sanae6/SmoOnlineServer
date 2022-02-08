@@ -10,5 +10,6 @@ public enum PacketType {
     Disconnect,
     Costume,
     Shine,
+    Capture,
     Command
 }

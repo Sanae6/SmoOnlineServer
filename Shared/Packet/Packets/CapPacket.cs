@@ -4,7 +4,8 @@ using System.Text;
 
 namespace Shared.Packet.Packets; 
 
-public class CapPacket : IPacket {
+[Packet(PacketType.Cap)]
+public struct CapPacket : IPacket {
     public const int NameSize = 0x30;
     public Vector3 Position;
     public Quaternion Rotation;

@@ -2,7 +2,8 @@
 
 namespace Shared.Packet.Packets; 
 
-public class TagPacket : IPacket {
+[Packet(PacketType.Tag)]
+public struct TagPacket : IPacket {
     public bool IsIt = false;
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref IsIt);
