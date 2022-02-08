@@ -32,7 +32,7 @@ async void Funny() {
     while (true) {
         d += Math.PI / 32;
         if (playerPacket == null) {
-            // logger.Warn($"Waiting...");
+            // wait until valid player packet has arrived
             await Task.Delay(300);
             continue;
         }
@@ -55,27 +55,30 @@ async Task S() {
     IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(256);
     while (true) {
         await stream.ReadAsync(owner.Memory);
-        PacketHeader header = MemoryMarshal.Read<PacketHeader>(owner.Memory.Span);
-        if (header.Type == PacketType.Player) {
-            if (otherId == Guid.Empty) otherId = header.Id;
-            if (otherId != header.Id) continue;
-            if (e++ != 0) {
-                e %= 3;
-                continue;
-            }
+        unsafe {
+            
+            PacketHeader header = MemoryMarshal.Read<PacketHeader>(owner.Memory.Span);
+            if (header.Type == PacketType.Player) {
+                if (otherId == Guid.Empty) otherId = header.Id;
+                if (otherId != header.Id) continue;
+                if (e++ != 0) {
+                    e %= 3;
+                    continue;
+                }
 
-            header.Id = ownId;
-            MemoryMarshal.Write(owner.Memory.Span, ref header);
-            unsafe {
+                header.Id = ownId;
+                MemoryMarshal.Write(owner.Memory.Span, ref header);
                 fixed (byte* data = owner.Memory.Span[Constants.HeaderSize..]) {
                     logger.Error($"{Marshal.OffsetOf<PlayerPacket>(nameof(PlayerPacket.AnimationBlendWeights))} {Marshal.OffsetOf<PlayerPacket>(nameof(PlayerPacket.AnimationRate))}");
                     PlayerPacket packet = Marshal.PtrToStructure<PlayerPacket>((IntPtr) data);
                     playerPacket = packet;
                     basePoint = packet.Position;
                 }
-            }
 
-            // packet.SubAct = "";
+                // packet.SubAct = "";
+            } else if (header.Type == PacketType.Cap) {
+            
+            }
         }
     }
 }

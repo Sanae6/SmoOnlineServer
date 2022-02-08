@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -38,7 +39,6 @@ public struct PlayerPacket : IPacket {
         MemoryMarshal.Write(data[offset++..], ref IsIt);
         MemoryMarshal.Write(data[offset..], ref ScenarioNum);
         offset += 5;
-        // Span<char> strData = MemoryMarshal.Cast<byte, char>(data[offset..]);
         Encoding.UTF8.GetBytes(Stage).CopyTo(data[offset..(offset + NameSize)]);
         offset += NameSize;
         Encoding.UTF8.GetBytes(Act).CopyTo(data[offset..(offset + NameSize)]);
@@ -60,10 +60,10 @@ public struct PlayerPacket : IPacket {
         // offset++; // padding
         ScenarioNum = MemoryMarshal.Read<int>(data[offset..]);
         offset += 5;
-        Stage = new string(Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0'));
+        Stage = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
         offset += NameSize;
-        Act = new string(Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0'));
+        Act = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
         offset += NameSize;
-        SubAct = new string(Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0'));
+        SubAct = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
     }
 }

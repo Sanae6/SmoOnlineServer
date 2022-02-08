@@ -9,6 +9,7 @@ public static class Constants {
     public const int MaxPacketSize = 256;
     public const int MaxClients = 4;
     public static int HeaderSize { get; } = Marshal.SizeOf<PacketHeader>();
+    public const int CostumeNameSize = 0x20;
 
     // dictionary of packet types to packet
     public static readonly Dictionary<Type, PacketAttribute> Packets = Assembly

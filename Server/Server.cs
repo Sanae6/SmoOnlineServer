@@ -151,16 +151,15 @@ public class Server {
                 Logger.Info($"Client {socket.RemoteEndPoint} disconnected from the server");
             } else {
                 Logger.Error($"Exception on socket {socket.RemoteEndPoint}, disconnecting for: {e}");
-                await socket.DisconnectAsync(false);
+                Task.Run(() => socket.DisconnectAsync(false));
             }
 
             memory?.Dispose();
         }
 
         Clients.Remove(client);
-        Broadcast(new DisconnectPacket(), client).ContinueWith(_ => {
-            client.Dispose();
-        });
+        client.Dispose();
+        Task.Run(() => Broadcast(new DisconnectPacket(), client));
     }
 
     private static PacketHeader GetHeader(Span<byte> data) {
