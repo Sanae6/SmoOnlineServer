@@ -134,7 +134,7 @@ public class Server {
                         }
                     }
                     
-                    Logger.Info($"Client {socket.RemoteEndPoint} connected.");
+                    Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) connected.");
                 }
 
                 
@@ -145,9 +145,9 @@ public class Server {
         }
         catch (Exception e) {
             if (e is SocketException {SocketErrorCode: SocketError.ConnectionReset}) {
-                Logger.Info($"Client {socket.RemoteEndPoint} disconnected from the server");
+                Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) disconnected from the server");
             } else {
-                Logger.Error($"Exception on socket {socket.RemoteEndPoint}, disconnecting for: {e}");
+                Logger.Error($"Exception on socket {socket.RemoteEndPoint} ({client.Id}) and disconnecting for: {e}");
                 Task.Run(() => socket.DisconnectAsync(false));
             }
 
