@@ -141,7 +141,7 @@ public class Server {
 
                 
                 // todo support variable length packets if they show up
-                // Logger.Warn($"broadcasting {header.Type}");
+                Logger.Warn($"broadcasting {header.Type} from {client.Id}");
                 await Broadcast(memory, client);
             }
         }
