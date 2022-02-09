@@ -59,7 +59,10 @@ public class Server {
     /// <param name="data">Memory owner to dispose once done</param>
     /// <param name="sender">Optional sender to not broadcast data to</param>
     public async Task Broadcast(IMemoryOwner<byte> data, Client? sender = null) {
-        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => client.Send(data.Memory)));
+        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => {
+            Logger.Info($"Sending {(PacketType) data.Memory.Span[16]} to {client.Id} from {sender.Id}");
+            return client.Send(data.Memory);
+        }));
         data.Dispose();
     }
 
