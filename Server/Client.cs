@@ -6,7 +6,7 @@ namespace Server;
 
 public class Client : IDisposable {
     public Socket? Socket;
-    public bool Connected => Socket?.Connected ?? false;
+    public bool Connected = false;
     public Guid Id;
     public CostumePacket CurrentCostume = new CostumePacket {
         BodyName = "",

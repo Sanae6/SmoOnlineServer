@@ -121,6 +121,8 @@ public class Server {
                             default:
                                 throw new Exception($"Invalid connection type {connect.ConnectionType}");
                         }
+
+                        client.Connected = true;
                         if (firstConn) {
                             // do any cleanup required when it comes to new clients
                             List<Client> toDisconnect = Clients.FindAll(c => c.Id == header.Id && c.Connected && c.Socket != null);
