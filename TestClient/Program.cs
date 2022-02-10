@@ -7,7 +7,8 @@ using Shared.Packet;
 using Shared.Packet.Packets;
 
 TcpClient client = new TcpClient(args[0], 1027);
-Guid ownId = new Guid(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+// Guid ownId = new Guid(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+Guid ownId = Guid.NewGuid();
 Guid otherId = Guid.Empty;
 Logger logger = new Logger("Client");
 NetworkStream stream = client.GetStream();
@@ -32,10 +33,13 @@ async Task S() {
         await stream.ReadAsync(owner.Memory);
         PacketHeader header = MemoryMarshal.Read<PacketHeader>(owner.Memory.Span);
         PacketType type = header.Type;
+        if (type is not PacketType.Cap and not PacketType.Player) {
+            
+        }
         if (reboundPackets.All(x => x != type)) continue;
         header.Id = ownId;
         MemoryMarshal.Write(owner.Memory.Span, ref header);
-        await stream.WriteAsync(owner.Memory);
+        await stream.WriteAsync(owner.Memory[..Constants.MaxPacketSize]);
     }
 }
 
@@ -50,7 +54,5 @@ ConnectPacket connect = new ConnectPacket {
 };
 MemoryMarshal.Write(owner.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize], ref connect);
 await stream.WriteAsync(owner.Memory);
-coolHeader.Type = PacketType.Player;
-MemoryMarshal.Write(owner.Memory.Span[..], ref coolHeader);
 logger.Info("Connected");
 await S();

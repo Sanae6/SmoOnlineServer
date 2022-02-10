@@ -48,7 +48,7 @@ public class Server {
 
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
-            Type = Constants.Packets[typeof(T)].Type
+            Type = Constants.PacketMap[typeof(T)].Type
         };
         FillPacket(header, packet, memory.Memory);
         await Broadcast(memory, sender);
@@ -147,7 +147,7 @@ public class Server {
                             Id = other.Id,
                             Type = PacketType.Connect
                         };
-                        MemoryMarshal.Write(connectBuffer.Memory.Span, ref connectHeader);
+                        MemoryMarshal.Write(connectBuffer.Memory.Span[Constants.HeaderSize..], ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
                             ConnectionType = ConnectionTypes.FirstConnection // doesn't matter what it is :)
                         };

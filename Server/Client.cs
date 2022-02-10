@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Shared;
 using Shared.Packet.Packets;
 
 namespace Server;
@@ -19,9 +20,9 @@ public class Client : IDisposable {
         Socket?.Disconnect(false);
     }
 
-    public async Task Send(Memory<byte> data) {
+    public async Task Send(ReadOnlyMemory<byte> data) {
         if (!Connected) return;
-        await Socket!.SendAsync(data, SocketFlags.None);
+        await Socket!.SendAsync(data[..Constants.MaxPacketSize], SocketFlags.None);
     }
 
     public static bool operator ==(Client? left, Client? right) {
