@@ -44,7 +44,7 @@ public class Server {
 
     // broadcast packets to all clients
     public async Task Broadcast<T>(T packet, Client? sender = null) where T : unmanaged, IPacket {
-        IMemoryOwner<byte> memory = memoryPool.Rent(Marshal.SizeOf<T>() + Constants.HeaderSize);
+        IMemoryOwner<byte> memory = memoryPool.Rent(Constants.MaxPacketSize);
 
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
@@ -142,7 +142,7 @@ public class Server {
 
                     List<Client> otherConnectedPlayers = Clients.FindAll(c => c.Id != header.Id && c.Connected && c.Socket != null);
                     await Parallel.ForEachAsync(otherConnectedPlayers, async (other, _) => {
-                        IMemoryOwner<byte> connectBuffer = MemoryPool<byte>.Shared.Rent(256);
+                        IMemoryOwner<byte> connectBuffer = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
                         PacketHeader connectHeader = new PacketHeader {
                             Id = other.Id,
                             Type = PacketType.Connect

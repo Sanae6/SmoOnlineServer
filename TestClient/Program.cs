@@ -27,7 +27,7 @@ PacketType[] reboundPackets = {
 };
 
 async Task S() {
-    IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(256);
+    IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
     while (true) {
         await stream.ReadAsync(owner.Memory);
         PacketHeader header = MemoryMarshal.Read<PacketHeader>(owner.Memory.Span);
@@ -43,12 +43,12 @@ PacketHeader coolHeader = new PacketHeader {
     Type = PacketType.Connect,
     Id = ownId
 };
-IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(256);
+IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
 MemoryMarshal.Write(owner.Memory.Span[..], ref coolHeader);
 ConnectPacket connect = new ConnectPacket {
     ConnectionType = ConnectionTypes.FirstConnection
 };
-MemoryMarshal.Write(owner.Memory.Span[Constants.HeaderSize..256], ref connect);
+MemoryMarshal.Write(owner.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize], ref connect);
 await stream.WriteAsync(owner.Memory);
 coolHeader.Type = PacketType.Player;
 MemoryMarshal.Write(owner.Memory.Span[..], ref coolHeader);
