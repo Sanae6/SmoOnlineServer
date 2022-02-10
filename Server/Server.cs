@@ -138,6 +138,21 @@ public class Server {
                             // done disconnecting and removing stale clients with the same id
                         }
                     }
+                    List<Client> otherConnectedPlayers = Clients.FindAll(c => c.Id != header.Id && c.Connected && c.Socket != null);
+                    await Parallel.ForEachAsync(otherConnectedPlayers, async (other, _) => {
+                        IMemoryOwner<byte> connectBuffer = MemoryPool<byte>.Shared.Rent(256);
+                        PacketHeader connectHeader = new PacketHeader() {
+                            Id = other.Id,
+                            Type = PacketType.Connect
+                        };
+                        MemoryMarshal.Write(connectBuffer.Memory.Span, ref connectHeader);
+                        ConnectPacket connectPacket = new ConnectPacket() {
+                            ConnectionType = ConnectionTypes.FirstConnection // doesn't matter what it is :)
+                        };
+                        MemoryMarshal.Write(connectBuffer.Memory.Span, ref connectPacket);
+                        await client.Send(connectBuffer.Memory);
+                        connectBuffer.Dispose();
+                    });
                     
                     Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) connected.");
                 }
