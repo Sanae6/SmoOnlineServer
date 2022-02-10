@@ -9,19 +9,20 @@ using Shared.Packet.Packets;
 namespace Server;
 
 public class Server {
-    private readonly MemoryPool<byte> memoryPool = MemoryPool<byte>.Shared;
     public readonly List<Client> Clients = new List<Client>();
     public readonly Logger Logger = new Logger("Server");
+    private readonly MemoryPool<byte> memoryPool = MemoryPool<byte>.Shared;
+
     public async Task Listen(ushort port) {
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
         serverSocket.Listen();
-            
+
         Logger.Info($"Listening on port {port}");
 
         while (true) {
             Socket socket = await serverSocket.AcceptAsync();
-            
+
             Logger.Warn("ok");
 
             if (Clients.Count > Constants.MaxClients) {
@@ -47,14 +48,14 @@ public class Server {
 
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
-            Type = Constants.Packets[typeof(T)].Type,
+            Type = Constants.Packets[typeof(T)].Type
         };
         FillPacket(header, packet, memory.Memory);
         await Broadcast(memory, sender);
     }
 
     /// <summary>
-    /// Takes ownership of data and disposes once done.
+    ///     Takes ownership of data and disposes once done.
     /// </summary>
     /// <param name="data">Memory owner to dispose once done</param>
     /// <param name="sender">Optional sender to not broadcast data to</param>
@@ -67,7 +68,7 @@ public class Server {
     }
 
     /// <summary>
-    /// Broadcasts memory whose memory shouldn't be disposed, should only be fired by server code.
+    ///     Broadcasts memory whose memory shouldn't be disposed, should only be fired by server code.
     /// </summary>
     /// <param name="data">Memory to send to the clients</param>
     /// <param name="sender">Optional sender to not broadcast data to</param>
@@ -81,14 +82,15 @@ public class Server {
 
 
     private async void HandleSocket(Socket socket) {
-        Client client = new Client {Socket = socket};
+        Client client = new Client { Socket = socket };
         IMemoryOwner<byte> memory = null!;
         bool first = true;
         try {
             while (true) {
                 memory = memoryPool.Rent(Constants.MaxPacketSize);
                 int size = await socket.ReceiveAsync(memory.Memory, SocketFlags.None);
-                if (size == 0) { // treat it as a disconnect and exit
+                if (size == 0) {
+                    // treat it as a disconnect and exit
                     Logger.Info($"Socket {socket.RemoteEndPoint} disconnected.");
                     await socket.DisconnectAsync(false);
                     break;
@@ -99,9 +101,7 @@ public class Server {
                 // connection initialization
                 if (first) {
                     first = false;
-                    if (header.Type != PacketType.Connect) {
-                        throw new Exception($"First packet was not init, instead it was {header.Type}");
-                    }
+                    if (header.Type != PacketType.Connect) throw new Exception($"First packet was not init, instead it was {header.Type}");
 
                     ConnectPacket connect = MemoryMarshal.Read<ConnectPacket>(memory.Memory.Span[Constants.HeaderSize..size]);
                     lock (Clients) {
@@ -119,6 +119,7 @@ public class Server {
                                 } else {
                                     firstConn = true;
                                 }
+
                                 break;
                             }
                             default:
@@ -130,7 +131,7 @@ public class Server {
                             // do any cleanup required when it comes to new clients
                             List<Client> toDisconnect = Clients.FindAll(c => c.Id == header.Id && c.Connected && c.Socket != null);
                             Clients.RemoveAll(c => c.Id == header.Id);
-                    
+
                             client.Id = header.Id;
                             Clients.Add(client);
 
@@ -138,33 +139,32 @@ public class Server {
                             // done disconnecting and removing stale clients with the same id
                         }
                     }
+
                     List<Client> otherConnectedPlayers = Clients.FindAll(c => c.Id != header.Id && c.Connected && c.Socket != null);
                     await Parallel.ForEachAsync(otherConnectedPlayers, async (other, _) => {
                         IMemoryOwner<byte> connectBuffer = MemoryPool<byte>.Shared.Rent(256);
-                        PacketHeader connectHeader = new PacketHeader() {
+                        PacketHeader connectHeader = new PacketHeader {
                             Id = other.Id,
                             Type = PacketType.Connect
                         };
                         MemoryMarshal.Write(connectBuffer.Memory.Span, ref connectHeader);
-                        ConnectPacket connectPacket = new ConnectPacket() {
+                        ConnectPacket connectPacket = new ConnectPacket {
                             ConnectionType = ConnectionTypes.FirstConnection // doesn't matter what it is :)
                         };
                         MemoryMarshal.Write(connectBuffer.Memory.Span, ref connectPacket);
                         await client.Send(connectBuffer.Memory);
                         connectBuffer.Dispose();
                     });
-                    
+
                     Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) connected.");
                 }
 
-                
                 // todo support variable length packets if they show up
                 Logger.Warn($"broadcasting {header.Type} from {client.Id}");
                 await Broadcast(memory, client);
             }
-        }
-        catch (Exception e) {
-            if (e is SocketException {SocketErrorCode: SocketError.ConnectionReset}) {
+        } catch (Exception e) {
+            if (e is SocketException { SocketErrorCode: SocketError.ConnectionReset }) {
                 Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) disconnected from the server");
             } else {
                 Logger.Error($"Exception on socket {socket.RemoteEndPoint} ({client.Id}) and disconnecting for: {e}");

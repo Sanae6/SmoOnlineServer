@@ -1,10 +1,11 @@
-﻿namespace Shared; 
+﻿namespace Shared;
 
 public class Logger {
-    public string Name { get; }
     public Logger(string name) {
         Name = name;
     }
+
+    public string Name { get; }
 
     public void Info(string text) {
         Console.ResetColor();

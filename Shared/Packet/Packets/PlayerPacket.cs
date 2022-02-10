@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -11,17 +10,22 @@ public struct PlayerPacket : IPacket {
 
     public Vector3 Position;
     public Quaternion Rotation;
+
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
     public float[] AnimationBlendWeights;
+
     public float AnimationRate;
     public bool Is2d;
     public bool ThrowingCap;
     public bool IsIt;
     public int ScenarioNum;
+
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
     public string Stage;
+
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
     public string Act;
+
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
     public string SubAct;
 

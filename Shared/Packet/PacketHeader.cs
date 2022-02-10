@@ -1,13 +1,14 @@
 ﻿using System.Runtime.InteropServices;
 using Shared.Packet.Packets;
 
-namespace Shared.Packet; 
+namespace Shared.Packet;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct PacketHeader : IPacket {
     // public int Length;
     public Guid Id;
     public PacketType Type;
+
     public void Serialize(Span<byte> data) {
         // MemoryMarshal.Write(data, ref Length);
         MemoryMarshal.Write(data, ref Id);

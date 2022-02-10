@@ -1,4 +1,4 @@
-﻿namespace Shared.Packet; 
+﻿namespace Shared.Packet;
 
 public enum PacketType {
     Unknown,

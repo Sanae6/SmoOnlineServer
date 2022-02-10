@@ -1,9 +1,10 @@
-﻿namespace Shared.Packet.Packets; 
+﻿namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Unknown)] // empty like boss
 // [Packet(PacketType.Command)]
 public struct UnhandledPacket : IPacket {
     public byte[] Data = new byte[Constants.PacketDataSize];
+
     public void Serialize(Span<byte> data) {
         Data.CopyTo(data);
     }

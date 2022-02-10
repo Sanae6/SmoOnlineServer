@@ -1,13 +1,15 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Shared.Packet.Packets; 
+namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Capture)]
 public struct CapturePacket : IPacket {
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = Constants.CostumeNameSize)]
     public string ModelName;
+
     public bool IsCaptured;
+
     public void Serialize(Span<byte> data) {
         Encoding.UTF8.GetBytes(ModelName).CopyTo(data[..Constants.CostumeNameSize]);
         MemoryMarshal.Write(data[Constants.CostumeNameSize..], ref IsCaptured);

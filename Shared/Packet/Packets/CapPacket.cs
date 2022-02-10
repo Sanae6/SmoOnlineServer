@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Shared.Packet.Packets; 
+namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Cap)]
 public struct CapPacket : IPacket {
@@ -10,6 +10,7 @@ public struct CapPacket : IPacket {
     public Vector3 Position;
     public Quaternion Rotation;
     public string CapAnim;
+
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref Position);
         MemoryMarshal.Write(data[12..], ref Position);

@@ -1,10 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Shared.Packet.Packets; 
+namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Tag)]
 public struct TagPacket : IPacket {
-    public bool IsIt = false;
+    public bool IsIt;
+
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref IsIt);
     }

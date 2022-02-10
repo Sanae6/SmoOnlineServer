@@ -1,14 +1,16 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Shared.Packet.Packets; 
+namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Costume)]
 public struct CostumePacket : IPacket {
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = Constants.CostumeNameSize)]
     public string BodyName;
+
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = Constants.CostumeNameSize)]
     public string CapName;
+
     public void Serialize(Span<byte> data) {
         Encoding.UTF8.GetBytes(BodyName).CopyTo(data[..Constants.CostumeNameSize]);
         Encoding.UTF8.GetBytes(CapName).CopyTo(data[Constants.CostumeNameSize..]);

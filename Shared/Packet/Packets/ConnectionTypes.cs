@@ -1,4 +1,4 @@
-﻿namespace Shared.Packet.Packets; 
+﻿namespace Shared.Packet.Packets;
 
 public enum ConnectionTypes {
     FirstConnection,
