@@ -1,5 +1,6 @@
 ﻿using System.Net.Sockets;
 using Shared;
+using Shared.Packet;
 using Shared.Packet.Packets;
 
 namespace Server;
@@ -15,13 +16,18 @@ public class Client : IDisposable {
 
     public Guid Id;
     public Socket? Socket;
+    public Server Server { get; init; }
 
     public void Dispose() {
         Socket?.Disconnect(false);
     }
 
-    public async Task Send(ReadOnlyMemory<byte> data) {
-        if (!Connected) return;
+    public async Task Send(ReadOnlyMemory<byte> data, Client? other) {
+        if (!Connected) {
+            Server.Logger.Info($"Didn't send {(PacketType) data.Span[16]} to {Id} because they weren't connected yet");
+            return;
+        }
+        Server.Logger.Info($"Sending {(PacketType) data.Span[16]} to {Id} from {other?.Id.ToString() ?? "server"}");
         await Socket!.SendAsync(data[..Constants.MaxPacketSize], SocketFlags.None);
     }
 

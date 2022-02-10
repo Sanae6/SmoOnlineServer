@@ -60,10 +60,7 @@ public class Server {
     /// <param name="data">Memory owner to dispose once done</param>
     /// <param name="sender">Optional sender to not broadcast data to</param>
     public async Task Broadcast(IMemoryOwner<byte> data, Client? sender = null) {
-        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => {
-            Logger.Info($"Sending {(PacketType) data.Memory.Span[16]} to {client.Id} from {sender.Id}");
-            return client.Send(data.Memory);
-        }));
+        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => client.Send(data.Memory, sender)));
         data.Dispose();
     }
 
@@ -73,7 +70,7 @@ public class Server {
     /// <param name="data">Memory to send to the clients</param>
     /// <param name="sender">Optional sender to not broadcast data to</param>
     public async void Broadcast(Memory<byte> data, Client? sender = null) {
-        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => client.Send(data)));
+        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => client.Send(data, sender)));
     }
 
     public Client? FindExistingClient(Guid id) {
@@ -82,7 +79,7 @@ public class Server {
 
 
     private async void HandleSocket(Socket socket) {
-        Client client = new Client { Socket = socket };
+        Client client = new Client { Socket = socket, Server = this };
         IMemoryOwner<byte> memory = null!;
         bool first = true;
         try {
@@ -152,7 +149,7 @@ public class Server {
                             ConnectionType = ConnectionTypes.FirstConnection // doesn't matter what it is :)
                         };
                         MemoryMarshal.Write(connectBuffer.Memory.Span, ref connectPacket);
-                        await client.Send(connectBuffer.Memory);
+                        await client.Send(connectBuffer.Memory, null);
                         connectBuffer.Dispose();
                     });
 
