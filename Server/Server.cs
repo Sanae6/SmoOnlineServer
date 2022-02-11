@@ -25,13 +25,17 @@ public class Server {
 
             Logger.Warn("ok");
 
-            if (Clients.Count > Constants.MaxClients) {
-                Logger.Warn("Turned away client due to max clients");
-                await socket.DisconnectAsync(false);
-                continue;
-            }
+            try {
+                if (Clients.Count > Constants.MaxClients) {
+                    Logger.Warn("Turned away client due to max clients");
+                    await socket.DisconnectAsync(false);
+                    continue;
+                }
 
-            HandleSocket(socket);
+                HandleSocket(socket);
+            } catch {
+                // super ignore this
+            }
         }
     }
 
@@ -109,6 +113,7 @@ public class Server {
                                 break;
                             }
                             case ConnectionTypes.Reconnecting: {
+                                client.Id = header.Id;
                                 if (FindExistingClient(header.Id) is { } newClient) {
                                     if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
                                     newClient.Socket = client.Socket;
