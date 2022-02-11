@@ -43,7 +43,7 @@ public class Server {
     }
 
     // broadcast packets to all clients
-    public async Task Broadcast<T>(T packet, Client? sender = null) where T : unmanaged, IPacket {
+    public async Task Broadcast<T>(T packet, Client sender) where T : unmanaged, IPacket {
         IMemoryOwner<byte> memory = memoryPool.Rent(Constants.MaxPacketSize);
 
         PacketHeader header = new PacketHeader {
@@ -139,25 +139,35 @@ public class Server {
 
                     List<Client> otherConnectedPlayers = Clients.FindAll(c => c.Id != header.Id && c.Connected && c.Socket != null);
                     await Parallel.ForEachAsync(otherConnectedPlayers, async (other, _) => {
-                        IMemoryOwner<byte> connectBuffer = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
+                        IMemoryOwner<byte> tempBuffer = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
                         PacketHeader connectHeader = new PacketHeader {
                             Id = other.Id,
                             Type = PacketType.Connect
                         };
-                        MemoryMarshal.Write(connectBuffer.Memory.Span[Constants.HeaderSize..], ref connectHeader);
+                        MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
                             ConnectionType = ConnectionTypes.FirstConnection // doesn't matter what it is :)
                         };
-                        MemoryMarshal.Write(connectBuffer.Memory.Span, ref connectPacket);
-                        await client.Send(connectBuffer.Memory, null);
-                        connectBuffer.Dispose();
+                        MemoryMarshal.Write(tempBuffer.Memory.Span[Constants.HeaderSize..], ref connectPacket);
+                        await client.Send(tempBuffer.Memory, null);
+                        if (other.CurrentCostume is {} costumePacket) {
+                            connectHeader.Type = PacketType.Costume;
+                            MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
+                            costumePacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
+                            await client.Send(tempBuffer.Memory, null);
+                        }
+                        tempBuffer.Dispose();
                     });
 
                     Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) connected.");
                 }
 
                 // todo support variable length packets if they show up
-                Logger.Warn($"broadcasting {header.Type} from {client.Id}");
+                // Logger.Warn($"broadcasting {header.Type} from {client.Id}");
+                if (header.Type == PacketType.Costume) {
+                    client.CurrentCostume ??= new CostumePacket();
+                    client.CurrentCostume.Value.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
+                }
                 await Broadcast(memory, client);
             }
         } catch (Exception e) {

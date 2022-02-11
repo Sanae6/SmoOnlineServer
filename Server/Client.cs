@@ -9,10 +9,7 @@ public class Client : IDisposable {
     public readonly Dictionary<string, object> Metadata = new Dictionary<string, object>(); // can be used to store any information about a player
     public bool Connected = false;
 
-    public CostumePacket CurrentCostume = new CostumePacket {
-        BodyName = "",
-        CapName = ""
-    };
+    public CostumePacket? CurrentCostume;
 
     public Guid Id;
     public Socket? Socket;
@@ -27,7 +24,7 @@ public class Client : IDisposable {
             Server.Logger.Info($"Didn't send {(PacketType) data.Span[16]} to {Id} because they weren't connected yet");
             return;
         }
-        Server.Logger.Info($"Sending {(PacketType) data.Span[16]} to {Id} from {other?.Id.ToString() ?? "server"}");
+        // Server.Logger.Info($"Sending {(PacketType) data.Span[16]} to {Id} from {other?.Id.ToString() ?? "server"}");
         await Socket!.SendAsync(data[..Constants.MaxPacketSize], SocketFlags.None);
     }
 
