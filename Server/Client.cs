@@ -9,7 +9,7 @@ public class Client : IDisposable {
     public readonly Dictionary<string, object> Metadata = new Dictionary<string, object>(); // can be used to store any information about a player
     public bool Connected = false;
 
-    public CostumePacket? CurrentCostume;
+    public CostumePacket? CurrentCostume = null;
 
     public Guid Id;
     public Socket? Socket;
