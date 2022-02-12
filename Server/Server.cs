@@ -155,10 +155,10 @@ public class Server {
                         };
                         MemoryMarshal.Write(tempBuffer.Memory.Span[Constants.HeaderSize..], ref connectPacket);
                         await client.Send(tempBuffer.Memory, null);
-                        if (other.CurrentCostume is {} costumePacket) {
+                        if (other.CurrentCostume.HasValue) {
                             connectHeader.Type = PacketType.Costume;
                             MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
-                            costumePacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
+                            other.CurrentCostume.Value.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
                             await client.Send(tempBuffer.Memory, null);
                         }
                         tempBuffer.Dispose();
@@ -167,11 +167,12 @@ public class Server {
                     Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) connected.");
                 }
 
-                // todo support variable length packets if they show up
-                // Logger.Warn($"broadcasting {header.Type} from {client.Id}");
                 if (header.Type == PacketType.Costume) {
-                    client.CurrentCostume ??= new CostumePacket();
-                    client.CurrentCostume.Value.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
+                    CostumePacket costumePacket = new CostumePacket {
+                        BodyName = ""
+                    };
+                    costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
+                    client.CurrentCostume = costumePacket;
                 }
                 await Broadcast(memory, client);
             }
