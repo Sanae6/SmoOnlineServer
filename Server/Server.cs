@@ -184,11 +184,13 @@ public class Server {
                     client.CurrentCostume = costumePacket;
                 }
 
-                {
+                try {
                     if (header.Type is not PacketType.Cap and not PacketType.Player) Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
                     PacketHandler?.Invoke(client, packet);
+                } catch {
+                    // ignore failed packet deserialization!
                 }
 
                 await Broadcast(memory, client);
