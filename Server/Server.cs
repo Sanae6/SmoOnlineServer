@@ -107,7 +107,8 @@ public class Server {
                     first = false;
                     if (header.Type != PacketType.Connect) throw new Exception($"First packet was not init, instead it was {header.Type}");
 
-                    ConnectPacket connect = MemoryMarshal.Read<ConnectPacket>(memory.Memory.Span[Constants.HeaderSize..size]);
+                    ConnectPacket connect = new ConnectPacket();
+                    connect.Deserialize(memory.Memory.Span[Constants.HeaderSize..size]);
                     lock (Clients) {
                         bool firstConn = false;
                         switch (connect.ConnectionType) {
@@ -181,6 +182,13 @@ public class Server {
                     };
                     costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
                     client.CurrentCostume = costumePacket;
+                }
+
+                {
+                    if (header.Type is not PacketType.Cap and not PacketType.Player) Logger.Warn($"lol {header.Type}");
+                    IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
+                    packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
+                    PacketHandler?.Invoke(client, packet);
                 }
 
                 await Broadcast(memory, client);

@@ -1,9 +1,11 @@
 ﻿using System.Collections.Concurrent;
 using Server;
 using Shared.Packet.Packets;
+using Timer = System.Timers.Timer;
 
 Server.Server server = new Server.Server();
-ConcurrentBag<int> shineBag = new ConcurrentBag<int>();
+HashSet<int> shineBag = new HashSet<int>();
+int shineTx = 0; // used for logging
 
 server.ClientJoined += async (c, type) => {
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
@@ -23,6 +25,14 @@ async void SyncShineBag() {
     });
 }
 
+Timer timer = new Timer(120000);
+timer.AutoReset = true;
+timer.Enabled = true;
+timer.Elapsed += (_, _) => {
+    SyncShineBag();
+};
+timer.Start();
+
 server.PacketHandler += async (c, p) => {
     switch (p) {
         case CostumePacket:
@@ -33,6 +43,8 @@ server.PacketHandler += async (c, p) => {
             if (c.Metadata["loadedSave"] is false) return;
             ConcurrentBag<int> playerBag = (ConcurrentBag<int>) c.Metadata["shineSync"];
             shineBag.Add(shinePacket.ShineId);
+            if (playerBag.Contains(shinePacket.ShineId)) return;
+            Console.WriteLine($"{c.Name} got {shinePacket.ShineId}");
             playerBag.Add(shinePacket.ShineId);
             SyncShineBag();
             break;
