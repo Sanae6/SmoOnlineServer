@@ -161,7 +161,7 @@ public class Server {
                         ConnectPacket connectPacket = new ConnectPacket {
                             ConnectionType = ConnectionTypes.FirstConnection // doesn't matter what it is :)
                         };
-                        MemoryMarshal.Write(tempBuffer.Memory.Span[Constants.HeaderSize..], ref connectPacket);
+                        connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
                         await client.Send(tempBuffer.Memory, null);
                         if (other.CurrentCostume.HasValue) {
                             connectHeader.Type = PacketType.Costume;
