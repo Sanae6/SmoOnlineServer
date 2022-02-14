@@ -46,7 +46,7 @@ public class Server {
         Span<byte> data = memory.Span;
 
         MemoryMarshal.Write(data, ref header);
-        MemoryMarshal.Write(data[Constants.HeaderSize..], ref packet);
+        packet.Serialize(data[Constants.HeaderSize..]);
     }
 
     // broadcast packets to all clients
