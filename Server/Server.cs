@@ -12,9 +12,12 @@ public class Server {
     public readonly List<Client> Clients = new List<Client>();
     public readonly Logger Logger = new Logger("Server");
     private readonly MemoryPool<byte> memoryPool = MemoryPool<byte>.Shared;
+    public event Action<Client, IPacket> PacketHandler = null!;
+    public event Action<Client, ConnectPacket> ClientJoined = null!;
 
     public async Task Listen(ushort port) {
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
         serverSocket.Listen();
 
@@ -114,12 +117,14 @@ public class Server {
                             }
                             case ConnectionTypes.Reconnecting: {
                                 client.Id = header.Id;
+                                client.Name = connect.ClientName;
                                 if (FindExistingClient(header.Id) is { } newClient) {
                                     if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
                                     newClient.Socket = client.Socket;
                                     client = newClient;
                                 } else {
                                     firstConn = true;
+                                    connect.ConnectionType = ConnectionTypes.FirstConnection;
                                 }
 
                                 break;
@@ -139,6 +144,8 @@ public class Server {
 
                             Parallel.ForEachAsync(toDisconnect, (c, token) => c.Socket!.DisconnectAsync(false, token));
                             // done disconnecting and removing stale clients with the same id
+
+                            ClientJoined?.Invoke(client, connect);
                         }
                     }
 
@@ -161,6 +168,7 @@ public class Server {
                             other.CurrentCostume.Value.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
                             await client.Send(tempBuffer.Memory, null);
                         }
+
                         tempBuffer.Dispose();
                     });
 
@@ -174,6 +182,7 @@ public class Server {
                     costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
                     client.CurrentCostume = costumePacket;
                 }
+
                 await Broadcast(memory, client);
             }
         } catch (Exception e) {

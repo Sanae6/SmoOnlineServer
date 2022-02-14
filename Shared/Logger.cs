@@ -5,7 +5,7 @@ public class Logger {
         Name = name;
     }
 
-    public string Name { get; }
+    public string Name { get; set; }
 
     public void Info(string text) {
         Console.ResetColor();
