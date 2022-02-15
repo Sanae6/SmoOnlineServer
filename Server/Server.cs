@@ -92,15 +92,24 @@ public class Server {
         try {
             while (true) {
                 memory = memoryPool.Rent(Constants.MaxPacketSize);
-                int size = await socket.ReceiveAsync(memory.Memory, SocketFlags.None);
-                if (size == 0) {
-                    // treat it as a disconnect and exit
-                    Logger.Info($"Socket {socket.RemoteEndPoint} disconnected.");
-                    if (socket.Connected) await socket.DisconnectAsync(false);
-                    break;
+                {
+                    int readOffset = 0;
+                    while (readOffset < Constants.MaxPacketSize) {
+                        int size = await socket.ReceiveAsync(memory.Memory[readOffset..Constants.MaxPacketSize], SocketFlags.None);
+                        if (size == 0) {
+                            // treat it as a disconnect and exit
+                            Logger.Info($"Socket {socket.RemoteEndPoint} disconnected.");
+                            if (socket.Connected) await socket.DisconnectAsync(false);
+                            break;
+                        }
+
+                        readOffset += size;
+                    }
+
+                    if (readOffset < Constants.MaxPacketSize) break;
                 }
 
-                PacketHeader header = GetHeader(memory.Memory.Span[..size]);
+                PacketHeader header = GetHeader(memory.Memory.Span[..Constants.MaxPacketSize]);
                 //Logger.Info($"first = {first}, type = {header.Type}, data = " + memory.Memory.Span[..size].Hex());
                 // connection initialization
                 if (first) {
@@ -108,7 +117,7 @@ public class Server {
                     if (header.Type != PacketType.Connect) throw new Exception($"First packet was not init, instead it was {header.Type}");
 
                     ConnectPacket connect = new ConnectPacket();
-                    connect.Deserialize(memory.Memory.Span[Constants.HeaderSize..size]);
+                    connect.Deserialize(memory.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
                     lock (Clients) {
                         bool firstConn = false;
                         switch (connect.ConnectionType) {
