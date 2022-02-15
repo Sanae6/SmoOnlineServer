@@ -19,10 +19,16 @@ public class Client : IDisposable {
     public Guid Id;
     public Socket? Socket;
     public Server Server { get; init; }
-    public Logger Logger { get; init; } = new Logger("Unknown User");
+    public Logger Logger { get; }
 
+    public Client(Socket socket) {
+        Socket = socket;
+        Logger = new Logger(socket.RemoteEndPoint?.ToString() ?? "Unknown User???");
+    }
+    
     public void Dispose() {
-        Socket?.Disconnect(false);
+        if (Socket?.Connected is true)
+            Socket.Disconnect(false);
     }
 
     public async Task Send<T>(T packet, Client? sender = null) where T : unmanaged, IPacket {

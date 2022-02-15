@@ -44,7 +44,7 @@ server.PacketHandler += async (c, p) => {
             ConcurrentBag<int> playerBag = (ConcurrentBag<int>) c.Metadata["shineSync"];
             shineBag.Add(shinePacket.ShineId);
             if (playerBag.Contains(shinePacket.ShineId)) return;
-            Console.WriteLine($"{c.Name} got {shinePacket.ShineId}");
+            c.Logger.Info($"Got shine {shinePacket.ShineId}");
             playerBag.Add(shinePacket.ShineId);
             SyncShineBag();
             break;

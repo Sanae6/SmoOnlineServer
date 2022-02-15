@@ -26,7 +26,7 @@ public class Server {
         while (true) {
             Socket socket = await serverSocket.AcceptAsync();
 
-            Logger.Warn("ok");
+            Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
             try {
                 if (Clients.Count > Constants.MaxClients) {
@@ -35,7 +35,7 @@ public class Server {
                     continue;
                 }
 
-                HandleSocket(socket);
+                Task.Run(() => HandleSocket(socket));
             } catch {
                 // super ignore this
             }
@@ -86,7 +86,7 @@ public class Server {
 
 
     private async void HandleSocket(Socket socket) {
-        Client client = new Client { Socket = socket, Server = this };
+        Client client = new Client(socket) { Server = this };
         IMemoryOwner<byte> memory = null!;
         bool first = true;
         try {
@@ -96,7 +96,7 @@ public class Server {
                 if (size == 0) {
                     // treat it as a disconnect and exit
                     Logger.Info($"Socket {socket.RemoteEndPoint} disconnected.");
-                    await socket.DisconnectAsync(false);
+                    if (socket.Connected) await socket.DisconnectAsync(false);
                     break;
                 }
 
@@ -159,7 +159,8 @@ public class Server {
                         };
                         MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
-                            ConnectionType = ConnectionTypes.FirstConnection // doesn't matter what it is :)
+                            ConnectionType = ConnectionTypes.FirstConnection, // doesn't matter what it is :)
+                            ClientName = other.Name[..Constants.CostumeNameSize]
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
                         await client.Send(tempBuffer.Memory, null);
@@ -173,7 +174,7 @@ public class Server {
                         tempBuffer.Dispose();
                     });
 
-                    Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) connected.");
+                    Logger.Info($"Client {client.Name} ({client.Id}/{socket.RemoteEndPoint}) connected.");
                 }
 
                 if (header.Type == PacketType.Costume) {
@@ -185,7 +186,7 @@ public class Server {
                 }
 
                 try {
-                    if (header.Type is not PacketType.Cap and not PacketType.Player) Logger.Warn($"lol {header.Type}");
+                    // if (header.Type is not PacketType.Cap and not PacketType.Player) client.Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
                     PacketHandler?.Invoke(client, packet);
@@ -193,14 +194,14 @@ public class Server {
                     // ignore failed packet deserialization!
                 }
 
-                await Broadcast(memory, client);
+                Broadcast(memory, client);
             }
         } catch (Exception e) {
             if (e is SocketException { SocketErrorCode: SocketError.ConnectionReset }) {
-                Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) disconnected from the server");
+                client.Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) disconnected from the server");
             } else {
-                Logger.Error($"Exception on socket {socket.RemoteEndPoint} ({client.Id}) and disconnecting for: {e}");
-                Task.Run(() => socket.DisconnectAsync(false));
+                client.Logger.Error($"Exception on socket {socket.RemoteEndPoint} ({client.Id}) and disconnecting for: {e}");
+                if (socket.Connected) Task.Run(() => socket.DisconnectAsync(false));
             }
 
             memory?.Dispose();

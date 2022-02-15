@@ -7,7 +7,7 @@ namespace Shared;
 
 public static class Constants {
     public const int MaxPacketSize = 256;
-    public const int MaxClients = 4;
+    public const int MaxClients = 10;
     public const int CostumeNameSize = 0x20;
 
     // dictionary of packet types to packet

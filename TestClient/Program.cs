@@ -13,8 +13,6 @@ Guid otherId = Guid.Parse("d5feae62-2e71-1000-88fd-597ea147ae88");
 Logger logger = new Logger("Client");
 NetworkStream stream = client.GetStream();
 
-int e = 0;
-double d = 0;
 Vector3 basePoint = Vector3.Zero;
 
 PacketType[] reboundPackets = {
@@ -66,9 +64,10 @@ PacketHeader coolHeader = new PacketHeader {
 IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
 MemoryMarshal.Write(owner.Memory.Span[..], ref coolHeader);
 ConnectPacket connect = new ConnectPacket {
-    ConnectionType = ConnectionTypes.FirstConnection
+    ConnectionType = ConnectionTypes.Reconnecting,
+    ClientName = "Test Sanae"
 };
-MemoryMarshal.Write(owner.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize], ref connect);
+connect.Serialize(owner.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
 await stream.WriteAsync(owner.Memory);
 logger.Info("Connected");
 await S();
