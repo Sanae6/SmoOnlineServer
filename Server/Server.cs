@@ -160,7 +160,7 @@ public class Server {
                         MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
                             ConnectionType = ConnectionTypes.FirstConnection, // doesn't matter what it is :)
-                            ClientName = other.Name[..Constants.CostumeNameSize]
+                            ClientName = other.Name
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
                         await client.Send(tempBuffer.Memory, null);
