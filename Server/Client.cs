@@ -39,6 +39,8 @@ public class Client : IDisposable {
             Type = Constants.PacketMap[typeof(T)].Type
         };
         Server.FillPacket(header, packet, memory.Memory);
+        await Send(memory.Memory, sender);
+        memory.Dispose();
     }
 
     public async Task Send(ReadOnlyMemory<byte> data, Client? sender) {

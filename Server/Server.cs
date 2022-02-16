@@ -25,6 +25,7 @@ public class Server {
 
         while (true) {
             Socket socket = await serverSocket.AcceptAsync();
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
             Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
@@ -50,6 +51,12 @@ public class Server {
     }
 
     // broadcast packets to all clients
+    public delegate void PacketReplacer<in T>(Client from, Client to, T value); // replacer must send
+    public async Task BroadcastReplace<T>(T packet, Client sender, PacketReplacer<T> packetReplacer) where T : struct, IPacket {
+        foreach (Client client in Clients.Where(client => sender.Id != client.Id)) {
+            packetReplacer(sender, client, packet);
+        }
+    }
     public async Task Broadcast<T>(T packet, Client sender) where T : struct, IPacket {
         IMemoryOwner<byte> memory = memoryPool.Rent(Constants.MaxPacketSize);
 
@@ -110,7 +117,7 @@ public class Server {
                 }
 
                 PacketHeader header = GetHeader(memory.Memory.Span[..Constants.MaxPacketSize]);
-                //Logger.Info($"first = {first}, type = {header.Type}, data = " + memory.Memory.Span[..size].Hex());
+
                 // connection initialization
                 if (first) {
                     first = false;
@@ -184,7 +191,7 @@ public class Server {
                     });
 
                     Logger.Info($"Client {client.Name} ({client.Id}/{socket.RemoteEndPoint}) connected.");
-                }
+                } else if (header.Id != client.Id && client.Id != Guid.Empty) throw new Exception($"Client {client.Name} sent packet with invalid client id {header.Id} instead of {client.Id}");
 
                 if (header.Type == PacketType.Costume) {
                     CostumePacket costumePacket = new CostumePacket {
@@ -198,7 +205,10 @@ public class Server {
                     // if (header.Type is not PacketType.Cap and not PacketType.Player) client.Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
-                    if (PacketHandler?.Invoke(client, packet) is false) continue;
+                    if (PacketHandler?.Invoke(client, packet) is false) {
+                        memory.Dispose();
+                        continue;
+                    }
                 } catch (Exception e){
                     client.Logger.Error($"Packet handler warning: {e}");
                 }
