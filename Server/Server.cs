@@ -12,7 +12,7 @@ public class Server {
     public readonly List<Client> Clients = new List<Client>();
     public readonly Logger Logger = new Logger("Server");
     private readonly MemoryPool<byte> memoryPool = MemoryPool<byte>.Shared;
-    public event Action<Client, IPacket> PacketHandler = null!;
+    public Func<Client, IPacket, bool>? PacketHandler = null!;
     public event Action<Client, ConnectPacket> ClientJoined = null!;
 
     public async Task Listen(ushort port) {
@@ -42,7 +42,7 @@ public class Server {
         }
     }
 
-    public static void FillPacket<T>(PacketHeader header, T packet, Memory<byte> memory) where T : unmanaged, IPacket {
+    public static void FillPacket<T>(PacketHeader header, T packet, Memory<byte> memory) where T : struct, IPacket {
         Span<byte> data = memory.Span;
 
         MemoryMarshal.Write(data, ref header);
@@ -50,7 +50,7 @@ public class Server {
     }
 
     // broadcast packets to all clients
-    public async Task Broadcast<T>(T packet, Client sender) where T : unmanaged, IPacket {
+    public async Task Broadcast<T>(T packet, Client sender) where T : struct, IPacket {
         IMemoryOwner<byte> memory = memoryPool.Rent(Constants.MaxPacketSize);
 
         PacketHeader header = new PacketHeader {
@@ -198,9 +198,9 @@ public class Server {
                     // if (header.Type is not PacketType.Cap and not PacketType.Player) client.Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
-                    PacketHandler?.Invoke(client, packet);
-                } catch {
-                    // ignore failed packet deserialization!
+                    if (PacketHandler?.Invoke(client, packet) is false) continue;
+                } catch (Exception e){
+                    client.Logger.Error($"Packet handler warning: {e}");
                 }
 
                 Broadcast(memory, client);

@@ -31,7 +31,7 @@ public class Client : IDisposable {
             Socket.Disconnect(false);
     }
 
-    public async Task Send<T>(T packet, Client? sender = null) where T : unmanaged, IPacket {
+    public async Task Send<T>(T packet, Client? sender = null) where T : struct, IPacket {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
 
         PacketHeader header = new PacketHeader {
