@@ -35,8 +35,9 @@ timer.Elapsed += (_, _) => {
 timer.Start();
 bool piss = false;
 
-// Guid lycel = Guid.Parse("d5feae62-2e71-1000-88fd-597ea147ae88");
-Guid lycel = Guid.Parse("5e1f9db4-1c27-1000-a421-4701972e443e");
+Guid lycel = Guid.Parse("d5feae62-2e71-1000-88fd-597ea147ae88");
+// Guid lycel = Guid.Parse("5e1f9db4-1c27-1000-a421-4701972e443e");
+Guid test = Guid.Parse("00000001-0000-0000-0000-000000000000");
 
 server.PacketHandler = (c, p) => {
     switch (p) {
@@ -54,11 +55,21 @@ server.PacketHandler = (c, p) => {
             SyncShineBag();
             break;
         }
-        case PlayerPacket playerPacket: {
-            if (!piss || c.Id != lycel) break;
+        case PlayerPacket playerPacket when c.Id == lycel && c.Id != test && piss: {
             playerPacket.Position += Vector3.UnitY * 160;
             playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI));
             server.Broadcast(playerPacket, c);
+            return false;
+        }
+        case PlayerPacket playerPacket when c.Id != lycel && piss: {
+            server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
+                if (to.Id == lycel) {
+                    sp.Position += Vector3.UnitY * 160;
+                    sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
+                    Console.WriteLine($"piss and not lycel {to.Id}");
+                }
+                to.Send(sp, from);
+            });
             return false;
         }
     }
