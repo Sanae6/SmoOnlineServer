@@ -39,7 +39,7 @@ public class Client : IDisposable {
             Type = Constants.PacketMap[typeof(T)].Type
         };
         Server.FillPacket(header, packet, memory.Memory);
-        await Send(memory.Memory, sender);
+        await Send(memory.Memory[..Constants.MaxPacketSize], sender);
         memory.Dispose();
     }
 
