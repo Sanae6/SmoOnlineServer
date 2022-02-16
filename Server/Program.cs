@@ -57,7 +57,7 @@ server.PacketHandler = (c, p) => {
         }
         case PlayerPacket playerPacket when c.Id == lycel && c.Id != test && piss: {
             playerPacket.Position += Vector3.UnitY * 160;
-            playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI));
+            playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
             server.Broadcast(playerPacket, c);
             return false;
         }
@@ -66,7 +66,6 @@ server.PacketHandler = (c, p) => {
                 if (to.Id == lycel) {
                     sp.Position += Vector3.UnitY * 160;
                     sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
-                    Console.WriteLine($"piss and not lycel {to.Id}");
                 }
                 to.Send(sp, from);
             });
