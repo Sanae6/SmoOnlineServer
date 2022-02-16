@@ -1,4 +1,8 @@
-﻿namespace Shared;
+﻿using System.Buffers;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+
+namespace Shared;
 
 public static class Extensions {
     public static string Hex(this Span<byte> span) {
@@ -17,5 +21,11 @@ public static class Extensions {
 
     public static string TrimNullTerm(this string text) {
         return text.Split('\0').FirstOrDefault() ?? "";
+    }
+
+    public static IMemoryOwner<byte> RentZero(this MemoryPool<byte> pool, int minSize) {
+        IMemoryOwner<byte> owner = pool.Rent(minSize);
+        CryptographicOperations.ZeroMemory(owner.Memory.Span);
+        return owner;
     }
 }

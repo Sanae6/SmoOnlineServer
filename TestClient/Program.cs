@@ -61,7 +61,7 @@ PacketHeader coolHeader = new PacketHeader {
     Type = PacketType.Connect,
     Id = ownId
 };
-IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
+IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.RentZero(Constants.MaxPacketSize);
 MemoryMarshal.Write(owner.Memory.Span[..], ref coolHeader);
 ConnectPacket connect = new ConnectPacket {
     ConnectionType = ConnectionTypes.Reconnecting,

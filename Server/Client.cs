@@ -32,7 +32,7 @@ public class Client : IDisposable {
     }
 
     public async Task Send<T>(T packet, Client? sender = null) where T : struct, IPacket {
-        IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
+        IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.MaxPacketSize);
 
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,

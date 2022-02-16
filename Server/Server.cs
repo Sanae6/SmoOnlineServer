@@ -58,7 +58,7 @@ public class Server {
         }
     }
     public async Task Broadcast<T>(T packet, Client sender) where T : struct, IPacket {
-        IMemoryOwner<byte> memory = memoryPool.Rent(Constants.MaxPacketSize);
+        IMemoryOwner<byte> memory = memoryPool.RentZero(Constants.MaxPacketSize);
 
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
@@ -168,7 +168,7 @@ public class Server {
 
                     List<Client> otherConnectedPlayers = Clients.FindAll(c => c.Id != header.Id && c.Connected && c.Socket != null);
                     await Parallel.ForEachAsync(otherConnectedPlayers, async (other, _) => {
-                        IMemoryOwner<byte> tempBuffer = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
+                        IMemoryOwner<byte> tempBuffer = MemoryPool<byte>.Shared.RentZero(Constants.MaxPacketSize);
                         PacketHeader connectHeader = new PacketHeader {
                             Id = other.Id,
                             Type = PacketType.Connect
@@ -197,14 +197,14 @@ public class Server {
                     CostumePacket costumePacket = new CostumePacket {
                         BodyName = ""
                     };
-                    costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
+                    costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
                     client.CurrentCostume = costumePacket;
                 }
 
                 try {
                     // if (header.Type is not PacketType.Cap and not PacketType.Player) client.Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
-                    packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..]);
+                    packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
                     if (PacketHandler?.Invoke(client, packet) is false) {
                         memory.Dispose();
                         continue;
