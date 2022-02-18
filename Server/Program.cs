@@ -1,7 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Numerics;
 using Server;
+using Shared;
 using Shared.Packet.Packets;
+using Tomlyn;
 using Timer = System.Timers.Timer;
 
 Server.Server server = new Server.Server();
@@ -21,23 +23,17 @@ async Task ClientSyncShineBag(Client client) {
 }
 
 async void SyncShineBag() {
-    await Parallel.ForEachAsync(server.Clients, async (client, _) => {
-        await ClientSyncShineBag(client);
-    });
+    await Parallel.ForEachAsync(server.Clients, async (client, _) => { await ClientSyncShineBag(client); });
 }
 
 Timer timer = new Timer(120000);
 timer.AutoReset = true;
 timer.Enabled = true;
-timer.Elapsed += (_, _) => {
-    SyncShineBag();
-};
+timer.Elapsed += (_, _) => { SyncShineBag(); };
 timer.Start();
-bool piss = false;
+bool flipEnabled = Settings.Instance.Flip.EnabledOnStart;
 
-Guid lycel = Guid.Parse("d5feae62-2e71-1000-88fd-597ea147ae88");
-// Guid lycel = Guid.Parse("5e1f9db4-1c27-1000-a421-4701972e443e");
-Guid test = Guid.Parse("00000001-0000-0000-0000-000000000000");
+float MarioSize(bool is2d) => is2d ? 180 : 160;
 
 server.PacketHandler = (c, p) => {
     switch (p) {
@@ -55,18 +51,19 @@ server.PacketHandler = (c, p) => {
             SyncShineBag();
             break;
         }
-        case PlayerPacket playerPacket when c.Id == lycel && c.Id != test && piss: {
-            playerPacket.Position += Vector3.UnitY * 160;
+        case PlayerPacket playerPacket when flipEnabled && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others && Settings.Instance.Flip.Players.Contains(c.Id): {
+            playerPacket.Position += Vector3.UnitY * MarioSize(playerPacket.Is2d);
             playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
             server.Broadcast(playerPacket, c);
             return false;
         }
-        case PlayerPacket playerPacket when c.Id != lycel && piss: {
+        case PlayerPacket playerPacket when flipEnabled && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Self && !Settings.Instance.Flip.Players.Contains(c.Id): {
             server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
-                if (to.Id == lycel) {
-                    sp.Position += Vector3.UnitY * 160;
+                if (Settings.Instance.Flip.Players.Contains(to.Id)) {
+                    sp.Position += Vector3.UnitY * MarioSize(playerPacket.Is2d);
                     sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
                 }
+
                 to.Send(sp, from);
             });
             return false;
@@ -76,12 +73,71 @@ server.PacketHandler = (c, p) => {
     return true;
 };
 
-Task.Run(() => {
-    while (true) {
-        Console.ReadLine();
-        piss = !piss;
-        server.Logger.Warn($"Lycel flipped to {piss}");
+CommandHandler.RegisterCommand("flip", args => {
+    const string optionUsage = "Valid options: list, add <user id>, remove <user id>, set <true/false>, pov <both/self/others>";
+    if (args.Length < 1)
+        return optionUsage;
+    switch (args[0]) {
+        case "list" when args.Length == 1:
+            return "User ids: " + string.Join(", ", Settings.Instance.Flip.Players.ToList());
+        case "add" when args.Length == 2: {
+            if (Guid.TryParse(args[1], out Guid result)) {
+                Settings.Instance.Flip.Players.Add(result);
+                Settings.SaveSettings();
+                return $"Added {result} to flipped players";
+            } else
+                return $"Invalid user id {args[1]}";
+        }
+        case "remove" when args.Length == 2: {
+            if (Guid.TryParse(args[1], out Guid result)) {
+                string output = Settings.Instance.Flip.Players.Remove(result) ? $"Removed {result} to flipped players" : $"User {result} wasn't in the flipped players list";
+                Settings.SaveSettings();
+                return output;
+            }
+
+            return $"Invalid user id {args[1]}";
+        }
+        case "set" when args.Length == 2: {
+            if (bool.TryParse(args[1], out bool result)) {
+                flipEnabled = result;
+                return result ? "Enabled player flipping for session" : "Disabled player flipping for session";
+            }
+
+            return optionUsage;
+        }
+        case "pov" when args.Length == 2: {
+            if (Enum.TryParse(args[1], true, out FlipOptions result)) {
+                Settings.Instance.Flip.Pov = result;
+                Settings.SaveSettings();
+                return $"Point of view set to {result}";
+            }
+
+            return optionUsage;
+        }
+        default:
+            return optionUsage;
     }
 });
 
-await server.Listen(1027);
+CommandHandler.RegisterCommand("shine", (args) => {
+    const string optionUsage = "Valid options: list";
+    if (args.Length < 1)
+        return optionUsage;
+    switch (args[0]) {
+        case "list" when args.Length == 1:
+            return $"Shines: {string.Join(", ", shineBag)}";
+        default:
+            return optionUsage;
+    }
+});
+
+Task.Run(() => {
+    Logger logger = new Logger("Console");
+    logger.Info("Run help command for valid commands.");
+    while (true) {
+        string? text = Console.ReadLine();
+        if (text != null) logger.Info(CommandHandler.GetResult(text));
+    }
+});
+
+await server.Listen();

@@ -6,7 +6,7 @@ namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Player)]
 public struct PlayerPacket : IPacket {
-    public const int NameSize = 0x30;
+    public const int NameSize = 0x20;
 
     public Vector3 Position;
     public Quaternion Rotation;
@@ -20,14 +20,17 @@ public struct PlayerPacket : IPacket {
     public bool IsIt;
     public int ScenarioNum;
 
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
-    public string Stage;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x40)]
+    public string Stage = "";
 
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
-    public string Act;
+    public string Act = "";
 
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
-    public string SubAct;
+    public string SubAct = "";
+
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
+    public string Hack = "";
 
     public void Serialize(Span<byte> data) {
         int offset = 0;
@@ -43,11 +46,13 @@ public struct PlayerPacket : IPacket {
         MemoryMarshal.Write(data[offset++..], ref IsIt);
         MemoryMarshal.Write(data[offset..], ref ScenarioNum);
         offset += 5;
-        Encoding.UTF8.GetBytes(Stage).CopyTo(data[offset..(offset + NameSize)]);
-        offset += NameSize;
+        Encoding.UTF8.GetBytes(Stage).CopyTo(data[offset..(offset + 0x40)]);
+        offset += 0x40;
         Encoding.UTF8.GetBytes(Act).CopyTo(data[offset..(offset + NameSize)]);
         offset += NameSize;
-        Encoding.UTF8.GetBytes(SubAct).CopyTo(data[offset..]);
+        Encoding.UTF8.GetBytes(SubAct).CopyTo(data[offset..(offset + NameSize)]);
+        offset += NameSize;
+        Encoding.UTF8.GetBytes(Hack).CopyTo(data[offset..]);
     }
 
     public void Deserialize(Span<byte> data) {
@@ -64,9 +69,11 @@ public struct PlayerPacket : IPacket {
         // offset++; // padding
         ScenarioNum = MemoryMarshal.Read<int>(data[offset..]);
         offset += 5;
-        Stage = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
-        offset += NameSize;
+        Stage = Encoding.UTF8.GetString(data[offset..(offset + 0x40)]).TrimEnd('\0');
+        offset += 0x40;
         Act = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
+        offset += NameSize;
+        SubAct = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
         offset += NameSize;
         SubAct = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
     }

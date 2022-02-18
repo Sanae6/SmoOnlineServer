@@ -17,13 +17,14 @@ Vector3 basePoint = Vector3.Zero;
 
 PacketType[] reboundPackets = {
     PacketType.Player,
-    // PacketType.Cap,
+    PacketType.Cap,
     PacketType.Capture,
     PacketType.Costume,
     PacketType.Tag,
     PacketType.Shine
 };
 
+string lastCapture = "";
 async Task S() {
     IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
     while (true) {
@@ -31,25 +32,29 @@ async Task S() {
         PacketHeader header = MemoryMarshal.Read<PacketHeader>(owner.Memory.Span);
         PacketType type = header.Type;
         if (header.Id != otherId) continue;
-        // if (type is PacketType.Player) {
-        //     CapPacket cap = new CapPacket();
-        //     PlayerPacket playerPacket = new PlayerPacket();
-        //     playerPacket.Deserialize(owner.Memory.Span[Constants.HeaderSize..]);
-        //     cap.Position = playerPacket.Position + Vector3.UnitY * 500f;
-        //     // cap.Rotation = Quaternion.CreateFromYawPitchRoll(0,0,0);
-        //     cap.CapAnim = "StayR";
-        //     playerPacket.Position = new Vector3(1000000f);
-        //     playerPacket.ThrowingCap = true;
-        //     header.Id = ownId;
-        //     MemoryMarshal.Write(owner.Memory.Span, ref header);
-        //     playerPacket.Serialize(owner.Memory.Span[Constants.HeaderSize..]);
-        //     await stream.WriteAsync(owner.Memory[..Constants.MaxPacketSize]);
-        //     header.Type = PacketType.Cap;
-        //     MemoryMarshal.Write(owner.Memory.Span, ref header);
-        //     cap.Serialize(owner.Memory.Span[Constants.HeaderSize..]);
-        //     await stream.WriteAsync(owner.Memory[..Constants.MaxPacketSize]);
-        //     continue;
-        // }
+        if (type is PacketType.Player) {
+            // CapPacket cap = new CapPacket();
+            PlayerPacket playerPacket = new PlayerPacket();
+            playerPacket.Deserialize(owner.Memory.Span[Constants.HeaderSize..]);
+            logger.Info(playerPacket.Hack);
+            if (playerPacket.Hack != lastCapture) {
+                logger.Info($"Changed to hack: {lastCapture = playerPacket.Hack}");
+            }
+            // cap.Position = playerPacket.Position + Vector3.UnitY * 500f;
+            // cap.Rotation = Quaternion.CreateFromYawPitchRoll(0,0,0);
+            // cap.CapAnim = "StayR";
+            // playerPacket.Position = new Vector3(1000000f);
+            // playerPacket.ThrowingCap = true;
+            // header.Id = ownId;
+            // MemoryMarshal.Write(owner.Memory.Span, ref header);
+            // playerPacket.Serialize(owner.Memory.Span[Constants.HeaderSize..]);
+            // await stream.WriteAsync(owner.Memory[..Constants.MaxPacketSize]);
+            // header.Type = PacketType.Cap;
+            // MemoryMarshal.Write(owner.Memory.Span, ref header);
+            // cap.Serialize(owner.Memory.Span[Constants.HeaderSize..]);
+            // await stream.WriteAsync(owner.Memory[..Constants.MaxPacketSize]);
+            // continue;
+        }
         if (reboundPackets.All(x => x != type)) continue;
         header.Id = ownId;
         MemoryMarshal.Write(owner.Memory.Span, ref header);

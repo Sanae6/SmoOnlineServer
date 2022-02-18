@@ -15,13 +15,13 @@ public class Server {
     public Func<Client, IPacket, bool>? PacketHandler = null!;
     public event Action<Client, ConnectPacket> ClientJoined = null!;
 
-    public async Task Listen(ushort port) {
+    public async Task Listen() {
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-        serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
+        serverSocket.Bind(new IPEndPoint(IPAddress.Parse(Settings.Instance.Server.Address), Settings.Instance.Server.Port));
         serverSocket.Listen();
 
-        Logger.Info($"Listening on port {port}");
+        Logger.Info($"Listening on {serverSocket.LocalEndPoint}");
 
         while (true) {
             Socket socket = await serverSocket.AcceptAsync();
