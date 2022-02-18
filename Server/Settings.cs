@@ -1,51 +1,39 @@
 ﻿using System.Net;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using Shared;
-using Tomlyn;
-using Tomlyn.Model;
-using Tomlyn.Syntax;
 
-namespace Server; 
+namespace Server;
 
 public class Settings {
     public static Settings Instance = new Settings();
     private static readonly Logger Logger = new Logger("Settings");
+
     static Settings() {
         LoadSettings();
     }
 
     public static void LoadSettings() {
-        if (File.Exists("settings.toml")) {
-            string text = File.ReadAllText("settings.toml");
-            if (Toml.TryToModel(text, out Settings? settings, out DiagnosticsBag? bag, options: new TomlModelOptions() {
-                    ConvertTo = (value, _) => {
-                        if (value is string str && Guid.TryParse(str, out Guid result))
-                            return result;
-
-                        return null;
-                    }
-                }))
-                Logger.Info("Loaded settings from settings.toml");
-            else
-                Logger.Warn($"Failed to load settings.toml: {bag}");
-            if (settings != null) Instance = settings;
+        if (File.Exists("settings.json")) {
+            string text = File.ReadAllText("settings.json");
+            try {
+                Instance = JsonConvert.DeserializeObject<Settings>(text, new StringEnumConverter(new CamelCaseNamingStrategy())) ?? Instance;
+                Logger.Info("Loaded settings from settings.json");
+            } catch (Exception e) {
+                Logger.Warn($"Failed to load settings.json: {e}");
+            }
         } else {
             SaveSettings();
         }
     }
 
-    public static void SaveSettings(Settings? settings = null) {
+    public static void SaveSettings() {
         try {
-            File.WriteAllText("settings.toml", Toml.FromModel(settings ?? Instance!, new TomlModelOptions {
-                ConvertTo = (x, _) => {
-                    if (x is Guid guid)
-                        return guid.ToString();
-
-                    return null!;
-                }
-            }));
-            Logger.Info("Saved settings to settings.toml");
+            File.WriteAllText("settings.json", JsonConvert.SerializeObject(Instance, Formatting.Indented, new StringEnumConverter(new CamelCaseNamingStrategy())));
+            Logger.Info("Saved settings to settings.json");
         } catch (Exception e) {
-            Logger.Error($"Failed to save settings.toml {e}");
+            Logger.Error($"Failed to save settings.json {e}");
         }
     }
 

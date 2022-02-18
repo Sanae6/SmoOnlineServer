@@ -3,7 +3,6 @@ using System.Numerics;
 using Server;
 using Shared;
 using Shared.Packet.Packets;
-using Tomlyn;
 using Timer = System.Timers.Timer;
 
 Server.Server server = new Server.Server();
@@ -85,8 +84,9 @@ CommandHandler.RegisterCommand("flip", args => {
                 Settings.Instance.Flip.Players.Add(result);
                 Settings.SaveSettings();
                 return $"Added {result} to flipped players";
-            } else
-                return $"Invalid user id {args[1]}";
+            }
+
+            return $"Invalid user id {args[1]}";
         }
         case "remove" when args.Length == 2: {
             if (Guid.TryParse(args[1], out Guid result)) {
@@ -119,7 +119,7 @@ CommandHandler.RegisterCommand("flip", args => {
     }
 });
 
-CommandHandler.RegisterCommand("shine", (args) => {
+CommandHandler.RegisterCommand("shine", args => {
     const string optionUsage = "Valid options: list";
     if (args.Length < 1)
         return optionUsage;
@@ -129,6 +129,16 @@ CommandHandler.RegisterCommand("shine", (args) => {
         default:
             return optionUsage;
     }
+});
+
+CommandHandler.RegisterCommand("loadsettings", _ => {
+    Settings.LoadSettings();
+    return "Loaded settings.json";
+});
+
+CommandHandler.RegisterCommand("savesettings", _ => {
+    Settings.SaveSettings();
+    return "Saved settings.json";
 });
 
 Task.Run(() => {
