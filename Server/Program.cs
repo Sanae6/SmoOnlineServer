@@ -73,6 +73,14 @@ server.PacketHandler = (c, p) => {
 
     return true;
 };
+//
+// CommandHandler.RegisterCommand("scenario", args => {
+//     const string optionUsage = "Valid options: split <"
+//     if (args.Length < 1) 
+//         return 
+// });
+
+CommandHandler.RegisterCommand("list", _ => $"List: {string.Join(", ", server.Clients.Select(x => $"{x.Name} ({x.Id})"))}");
 
 CommandHandler.RegisterCommand("flip", args => {
     const string optionUsage = "Valid options: list, add <user id>, remove <user id>, set <true/false>, pov <both/self/others>";
