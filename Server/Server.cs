@@ -31,7 +31,7 @@ public class Server {
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
                 try {
-                    if (Clients.Count > Constants.MaxClients) {
+                    if (Clients.Count == Constants.MaxClients) {
                         Logger.Warn("Turned away client due to max clients");
                         await socket.DisconnectAsync(false);
                         continue;
