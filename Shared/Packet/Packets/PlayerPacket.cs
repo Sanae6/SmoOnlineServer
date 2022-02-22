@@ -77,6 +77,6 @@ public struct PlayerPacket : IPacket {
         offset += NameSize;
         SubAct = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
         offset += NameSize;
-        SubAct = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
+        Hack = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
     }
 }

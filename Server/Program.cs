@@ -37,9 +37,6 @@ bool flipEnabled = Settings.Instance.Flip.EnabledOnStart;
 
 float MarioSize(bool is2d) => is2d ? 180 : 160;
 server.PacketHandler = (c, p) => {
-    if (p is PlayerPacket pp) {
-        Console.WriteLine($"{c.Id} hack {pp.Hack}");
-    }
     switch (p) {
         case CostumePacket:
             ClientSyncShineBag(c);
