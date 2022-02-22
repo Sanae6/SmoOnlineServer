@@ -15,7 +15,7 @@ public class Server {
     public Func<Client, IPacket, bool>? PacketHandler = null!;
     public event Action<Client, ConnectPacket> ClientJoined = null!;
 
-    public async Task Listen() {
+    public async Task Listen(CancellationToken? token = null) {
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         serverSocket.Bind(new IPEndPoint(IPAddress.Parse(Settings.Instance.Server.Address), Settings.Instance.Server.Port));
@@ -23,24 +23,38 @@ public class Server {
 
         Logger.Info($"Listening on {serverSocket.LocalEndPoint}");
 
-        while (true) {
-            Socket socket = await serverSocket.AcceptAsync();
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
+        try {
+            while (true) {
+                Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
-            Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
+                Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
-            try {
-                if (Clients.Count > Constants.MaxClients) {
-                    Logger.Warn("Turned away client due to max clients");
-                    await socket.DisconnectAsync(false);
-                    continue;
+                try {
+                    if (Clients.Count > Constants.MaxClients) {
+                        Logger.Warn("Turned away client due to max clients");
+                        await socket.DisconnectAsync(false);
+                        continue;
+                    }
+
+                    Task.Run(() => HandleSocket(socket));
+                } catch {
+                    // super ignore this
                 }
-
-                Task.Run(() => HandleSocket(socket));
-            } catch {
-                // super ignore this
             }
+        } catch (OperationCanceledException) {
+            // ignore the exception, it's just for closing the server
         }
+        Logger.Info("Server closing");
+
+        try {
+            serverSocket.Shutdown(SocketShutdown.Both);
+        } catch (Exception) {
+            // ignore
+        } finally {
+            serverSocket.Close();
+        }
+        Logger.Info("Server closed");
     }
 
     public static void FillPacket<T>(PacketHeader header, T packet, Memory<byte> memory) where T : struct, IPacket {

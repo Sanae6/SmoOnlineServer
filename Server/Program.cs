@@ -7,7 +7,10 @@ using Timer = System.Timers.Timer;
 
 Server.Server server = new Server.Server();
 HashSet<int> shineBag = new HashSet<int>();
-int shineTx = 0; // used for logging
+// int shineTx = 0; // used for logging
+CancellationTokenSource cts = new CancellationTokenSource();
+Task listenTask = server.Listen(cts.Token);
+Logger consoleLogger = new Logger("Console");
 
 server.ClientJoined += async (c, type) => {
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
@@ -33,8 +36,8 @@ timer.Start();
 bool flipEnabled = Settings.Instance.Flip.EnabledOnStart;
 
 float MarioSize(bool is2d) => is2d ? 180 : 160;
-
 server.PacketHandler = (c, p) => {
+    Console.WriteLine($"{c.Id} {p}");
     switch (p) {
         case CostumePacket:
             ClientSyncShineBag(c);
@@ -141,13 +144,28 @@ CommandHandler.RegisterCommand("savesettings", _ => {
     return "Saved settings.json";
 });
 
+Console.CancelKeyPress += (_, e) => {
+    e.Cancel = true;
+    consoleLogger.Info("Received Ctrl+C");
+    cts.Cancel();
+};
+
+CommandHandler.RegisterCommand("exit", _ => {
+    cts.Cancel();
+    return "Shutting down clients";
+});
+
+CommandHandler.RegisterCommand("quit", _ => {
+    cts.Cancel();
+    return "Shutting down clients";
+});
+
 Task.Run(() => {
-    Logger logger = new Logger("Console");
-    logger.Info("Run help command for valid commands.");
+    consoleLogger.Info("Run help command for valid commands.");
     while (true) {
         string? text = Console.ReadLine();
-        if (text != null) logger.Info(CommandHandler.GetResult(text));
+        if (text != null) consoleLogger.Info(CommandHandler.GetResult(text));
     }
 });
 
-await server.Listen();
+await listenTask;
