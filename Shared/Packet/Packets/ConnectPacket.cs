@@ -5,8 +5,10 @@ namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Connect)]
 public struct ConnectPacket : IPacket {
-    public ConnectionTypes ConnectionType;
+    public ConnectionTypes ConnectionType = ConnectionTypes.FirstConnection;
     public string ClientName = "?????";
+
+    public ConnectPacket() { }
 
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref ConnectionType);

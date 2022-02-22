@@ -5,6 +5,8 @@
 public struct UnhandledPacket : IPacket {
     public byte[] Data = new byte[Constants.PacketDataSize];
 
+    public UnhandledPacket() { }
+
     public void Serialize(Span<byte> data) {
         Data.CopyTo(data);
     }

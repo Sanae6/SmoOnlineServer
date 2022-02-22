@@ -8,17 +8,17 @@ namespace Shared.Packet.Packets;
 public struct PlayerPacket : IPacket {
     public const int NameSize = 0x20;
 
-    public Vector3 Position;
-    public Quaternion Rotation;
+    public Vector3 Position = default;
+    public Quaternion Rotation = default;
 
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
-    public float[] AnimationBlendWeights;
+    public float[] AnimationBlendWeights = Array.Empty<float>();
 
-    public float AnimationRate;
-    public bool Is2d;
-    public bool ThrowingCap;
-    public bool IsIt;
-    public int ScenarioNum;
+    public float AnimationRate = 0;
+    public bool Is2d = false;
+    public bool ThrowingCap = false;
+    public bool IsIt = false;
+    public int ScenarioNum = 0;
 
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x40)]
     public string Stage = "";
@@ -31,6 +31,8 @@ public struct PlayerPacket : IPacket {
 
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NameSize)]
     public string Hack = "";
+
+    public PlayerPacket() { }
 
     public void Serialize(Span<byte> data) {
         int offset = 0;
