@@ -18,10 +18,14 @@ server.ClientJoined += async (c, type) => {
 };
 
 async Task ClientSyncShineBag(Client client) {
-    foreach (int shine in shineBag.Except((ConcurrentBag<int>) client.Metadata["shineSync"]))
-        await client.Send(new ShinePacket {
-            ShineId = shine
-        });
+    try {
+        foreach (int shine in shineBag.Except((ConcurrentBag<int>) client.Metadata["shineSync"]))
+            await client.Send(new ShinePacket {
+                ShineId = shine
+            });
+    } catch {
+        // errors that can happen when sending will crash the server :)
+    }
 }
 
 async void SyncShineBag() {
@@ -130,12 +134,18 @@ CommandHandler.RegisterCommand("flip", args => {
 });
 
 CommandHandler.RegisterCommand("shine", args => {
-    const string optionUsage = "Valid options: list";
+    const string optionUsage = "Valid options: list, clear";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
         case "list" when args.Length == 1:
             return $"Shines: {string.Join(", ", shineBag)}";
+        case "clear" when args.Length == 1:
+            shineBag.Clear();
+            foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient => (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) {
+                playerBag.Clear();
+            }
+            return "Cleared shine bags";
         default:
             return optionUsage;
     }
