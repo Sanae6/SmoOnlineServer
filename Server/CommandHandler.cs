@@ -19,7 +19,8 @@ public static class CommandHandler {
             if (args.Length == 0) return "No command entered, see help command for valid commands";
             string commandName = args[0];
             return Handlers.TryGetValue(commandName, out Handler? handler) ? handler(args[1..]) : $"Invalid command {args[0]}, see help command for valid commands";
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return $"An error occured while trying to process your command: {e}";
         }
     }

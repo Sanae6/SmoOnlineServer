@@ -25,6 +25,7 @@ PacketType[] reboundPackets = {
 };
 
 string lastCapture = "";
+
 async Task S() {
     IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(Constants.MaxPacketSize);
     while (true) {
@@ -37,9 +38,7 @@ async Task S() {
             PlayerPacket playerPacket = new PlayerPacket();
             playerPacket.Deserialize(owner.Memory.Span[Constants.HeaderSize..]);
             logger.Info(playerPacket.Hack);
-            if (playerPacket.Hack != lastCapture) {
-                logger.Info($"Changed to hack: {lastCapture = playerPacket.Hack}");
-            }
+            if (playerPacket.Hack != lastCapture) logger.Info($"Changed to hack: {lastCapture = playerPacket.Hack}");
             // cap.Position = playerPacket.Position + Vector3.UnitY * 500f;
             // cap.Rotation = Quaternion.CreateFromYawPitchRoll(0,0,0);
             // cap.CapAnim = "StayR";
@@ -55,6 +54,7 @@ async Task S() {
             // await stream.WriteAsync(owner.Memory[..Constants.MaxPacketSize]);
             // continue;
         }
+
         if (reboundPackets.All(x => x != type)) continue;
         header.Id = ownId;
         MemoryMarshal.Write(owner.Memory.Span, ref header);

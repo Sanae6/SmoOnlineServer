@@ -38,22 +38,28 @@ public class Server {
                     }
 
                     Task.Run(() => HandleSocket(socket));
-                } catch {
+                }
+                catch {
                     // super ignore this
                 }
             }
-        } catch (OperationCanceledException) {
+        }
+        catch (OperationCanceledException) {
             // ignore the exception, it's just for closing the server
         }
+
         Logger.Info("Server closing");
 
         try {
             serverSocket.Shutdown(SocketShutdown.Both);
-        } catch (Exception) {
+        }
+        catch (Exception) {
             // ignore
-        } finally {
+        }
+        finally {
             serverSocket.Close();
         }
+
         Logger.Info("Server closed");
     }
 
@@ -66,11 +72,11 @@ public class Server {
 
     // broadcast packets to all clients
     public delegate void PacketReplacer<in T>(Client from, Client to, T value); // replacer must send
+
     public async Task BroadcastReplace<T>(T packet, Client sender, PacketReplacer<T> packetReplacer) where T : struct, IPacket {
-        foreach (Client client in Clients.Where(client => sender.Id != client.Id)) {
-            packetReplacer(sender, client, packet);
-        }
+        foreach (Client client in Clients.Where(client => sender.Id != client.Id)) packetReplacer(sender, client, packet);
     }
+
     public async Task Broadcast<T>(T packet, Client sender) where T : struct, IPacket {
         IMemoryOwner<byte> memory = memoryPool.RentZero(Constants.MaxPacketSize);
 
@@ -107,7 +113,7 @@ public class Server {
 
 
     private async void HandleSocket(Socket socket) {
-        Client client = new Client(socket) { Server = this };
+        Client client = new Client(socket) {Server = this};
         IMemoryOwner<byte> memory = null!;
         bool first = true;
         try {
@@ -205,7 +211,9 @@ public class Server {
                     });
 
                     Logger.Info($"Client {client.Name} ({client.Id}/{socket.RemoteEndPoint}) connected.");
-                } else if (header.Id != client.Id && client.Id != Guid.Empty) throw new Exception($"Client {client.Name} sent packet with invalid client id {header.Id} instead of {client.Id}");
+                } else if (header.Id != client.Id && client.Id != Guid.Empty) {
+                    throw new Exception($"Client {client.Name} sent packet with invalid client id {header.Id} instead of {client.Id}");
+                }
 
                 if (header.Type == PacketType.Costume) {
                     CostumePacket costumePacket = new CostumePacket {
@@ -223,14 +231,16 @@ public class Server {
                         memory.Dispose();
                         continue;
                     }
-                } catch (Exception e){
+                }
+                catch (Exception e) {
                     client.Logger.Error($"Packet handler warning: {e}");
                 }
 
                 Broadcast(memory, client);
             }
-        } catch (Exception e) {
-            if (e is SocketException { SocketErrorCode: SocketError.ConnectionReset }) {
+        }
+        catch (Exception e) {
+            if (e is SocketException {SocketErrorCode: SocketError.ConnectionReset}) {
                 client.Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) disconnected from the server");
             } else {
                 client.Logger.Error($"Exception on socket {socket.RemoteEndPoint} ({client.Id}) and disconnecting for: {e}");

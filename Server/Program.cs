@@ -15,6 +15,15 @@ Logger consoleLogger = new Logger("Console");
 server.ClientJoined += async (c, type) => {
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
+    c.Metadata["scenario"] = 0;
+    c.PacketTransformer += (sender, packet) => {
+        if (Settings.Instance.Scenario.MergeEnabled && packet is PlayerPacket playerPacket) {
+            playerPacket.ScenarioNum = (int) c.Metadata["scenario"];
+            return playerPacket;
+        }
+
+        return packet;
+    };
 };
 
 async Task ClientSyncShineBag(Client client) {
@@ -23,7 +32,8 @@ async Task ClientSyncShineBag(Client client) {
             await client.Send(new ShinePacket {
                 ShineId = shine
             });
-    } catch {
+    }
+    catch {
         // errors that can happen when sending will crash the server :)
     }
 }
@@ -39,8 +49,14 @@ timer.Elapsed += (_, _) => { SyncShineBag(); };
 timer.Start();
 bool flipEnabled = Settings.Instance.Flip.EnabledOnStart;
 
-float MarioSize(bool is2d) => is2d ? 180 : 160;
+float MarioSize(bool is2d) {
+    return is2d ? 180 : 160;
+}
+
 server.PacketHandler = (c, p) => {
+    {
+        if (p is PlayerPacket playerPacket) c.Metadata["scenario"] = playerPacket.ScenarioNum;
+    }
     switch (p) {
         case CostumePacket:
             ClientSyncShineBag(c);
@@ -77,12 +93,25 @@ server.PacketHandler = (c, p) => {
 
     return true;
 };
-//
-// CommandHandler.RegisterCommand("scenario", args => {
-//     const string optionUsage = "Valid options: split <"
-//     if (args.Length < 1) 
-//         return 
-// });
+
+CommandHandler.RegisterCommand("scenario", args => {
+    const string optionUsage = "Valid options: merge <true/false>";
+    if (args.Length < 1)
+        return optionUsage;
+    switch (args[0]) {
+        case "merge" when args.Length == 2: {
+            if (bool.TryParse(args[1], out bool result)) {
+                Settings.Instance.Scenario.MergeEnabled = result;
+                Settings.SaveSettings();
+                return result ? "Enabled scenario merge" : "Disabled scenario merge";
+            }
+
+            return optionUsage;
+        }
+        default:
+            return optionUsage;
+    }
+});
 
 CommandHandler.RegisterCommand("list", _ => $"List: {string.Join(", ", server.Clients.Select(x => $"{x.Name} ({x.Id})"))}");
 
@@ -142,9 +171,8 @@ CommandHandler.RegisterCommand("shine", args => {
             return $"Shines: {string.Join(", ", shineBag)}";
         case "clear" when args.Length == 1:
             shineBag.Clear();
-            foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient => (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) {
-                playerBag.Clear();
-            }
+            foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient => (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
+
             return "Cleared shine bags";
         default:
             return optionUsage;

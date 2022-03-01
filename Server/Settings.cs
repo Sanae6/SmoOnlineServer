@@ -20,7 +20,8 @@ public class Settings {
             try {
                 Instance = JsonConvert.DeserializeObject<Settings>(text, new StringEnumConverter(new CamelCaseNamingStrategy())) ?? Instance;
                 Logger.Info("Loaded settings from settings.json");
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 Logger.Warn($"Failed to load settings.json: {e}");
             }
         } else {
@@ -32,17 +33,23 @@ public class Settings {
         try {
             File.WriteAllText("settings.json", JsonConvert.SerializeObject(Instance, Formatting.Indented, new StringEnumConverter(new CamelCaseNamingStrategy())));
             Logger.Info("Saved settings to settings.json");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             Logger.Error($"Failed to save settings.json {e}");
         }
     }
 
     public ServerTable Server { get; set; } = new ServerTable();
     public FlipTable Flip { get; set; } = new FlipTable();
+    public ScenarioTable Scenario { get; set; } = new ScenarioTable();
 
     public class ServerTable {
         public string Address { get; set; } = IPAddress.Any.ToString();
         public ushort Port { get; set; } = 1027;
+    }
+
+    public class ScenarioTable {
+        public bool MergeEnabled { get; set; } = false;
     }
 
     public class FlipTable {

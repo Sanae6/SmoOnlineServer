@@ -25,15 +25,19 @@ public class Client : IDisposable {
         Socket = socket;
         Logger = new Logger(socket.RemoteEndPoint?.ToString() ?? "Unknown User???");
     }
-    
+
     public void Dispose() {
         if (Socket?.Connected is true)
             Socket.Disconnect(false);
     }
 
+    public delegate IPacket PacketTransformerDel(Client? sender, IPacket packet);
+
+    public event PacketTransformerDel? PacketTransformer;
+
     public async Task Send<T>(T packet, Client? sender = null) where T : struct, IPacket {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.MaxPacketSize);
-
+        packet = (T) (PacketTransformer?.Invoke(sender, packet) ?? packet);
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
             Type = Constants.PacketMap[typeof(T)].Type
