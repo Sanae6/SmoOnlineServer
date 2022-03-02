@@ -32,14 +32,17 @@ async Task ClientSyncShineBag(Client client) {
             await client.Send(new ShinePacket {
                 ShineId = shine
             });
-    }
-    catch {
+    } catch {
         // errors that can happen when sending will crash the server :)
     }
 }
 
 async void SyncShineBag() {
-    await Parallel.ForEachAsync(server.Clients, async (client, _) => { await ClientSyncShineBag(client); });
+    try {
+        await Parallel.ForEachAsync(server.Clients, async (client, _) => { await ClientSyncShineBag(client); });
+    } catch {
+        // errors that can happen shines change will crash the server :)
+    }
 }
 
 Timer timer = new Timer(120000);
