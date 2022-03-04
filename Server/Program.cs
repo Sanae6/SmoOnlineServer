@@ -12,7 +12,7 @@ CancellationTokenSource cts = new CancellationTokenSource();
 Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
 
-server.ClientJoined += async (c, type) => {
+server.ClientJoined += async (c, _) => {
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = 0;
