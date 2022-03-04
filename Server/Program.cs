@@ -28,10 +28,11 @@ server.ClientJoined += async (c, _) => {
 
 async Task ClientSyncShineBag(Client client) {
     try {
-        foreach (int shine in shineBag.Except((ConcurrentBag<int>) client.Metadata["shineSync"]))
+        foreach (int shine in shineBag.Except((ConcurrentBag<int>) client.Metadata["shineSync"]).ToArray()) {
             await client.Send(new ShinePacket {
                 ShineId = shine
             });
+        }
     } catch {
         // errors that can happen when sending will crash the server :)
     }
@@ -39,7 +40,7 @@ async Task ClientSyncShineBag(Client client) {
 
 async void SyncShineBag() {
     try {
-        await Parallel.ForEachAsync(server.Clients, async (client, _) => { await ClientSyncShineBag(client); });
+        await Parallel.ForEachAsync(server.Clients.ToArray(), async (client, _) => await ClientSyncShineBag(client));
     } catch {
         // errors that can happen shines change will crash the server :)
     }
@@ -75,7 +76,9 @@ server.PacketHandler = (c, p) => {
             SyncShineBag();
             break;
         }
-        case PlayerPacket playerPacket when flipEnabled && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others && Settings.Instance.Flip.Players.Contains(c.Id): {
+        case PlayerPacket playerPacket when flipEnabled
+                                            && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
+                                            && Settings.Instance.Flip.Players.Contains(c.Id): {
             playerPacket.Position += Vector3.UnitY * MarioSize(playerPacket.Is2d);
             playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
             server.Broadcast(playerPacket, c);
