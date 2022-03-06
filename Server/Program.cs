@@ -51,7 +51,6 @@ timer.AutoReset = true;
 timer.Enabled = true;
 timer.Elapsed += (_, _) => { SyncShineBag(); };
 timer.Start();
-bool flipEnabled = Settings.Instance.Flip.EnabledOnStart;
 
 float MarioSize(bool is2d) {
     return is2d ? 180 : 160;
@@ -76,7 +75,7 @@ server.PacketHandler = (c, p) => {
             SyncShineBag();
             break;
         }
-        case PlayerPacket playerPacket when flipEnabled
+        case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
                                             && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
                                             && Settings.Instance.Flip.Players.Contains(c.Id): {
             playerPacket.Position += Vector3.UnitY * MarioSize(playerPacket.Is2d);
@@ -84,7 +83,9 @@ server.PacketHandler = (c, p) => {
             server.Broadcast(playerPacket, c);
             return false;
         }
-        case PlayerPacket playerPacket when flipEnabled && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Self && !Settings.Instance.Flip.Players.Contains(c.Id): {
+        case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
+                                            && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Self
+                                            && !Settings.Instance.Flip.Players.Contains(c.Id): {
             server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
                 if (Settings.Instance.Flip.Players.Contains(to.Id)) {
                     sp.Position += Vector3.UnitY * MarioSize(playerPacket.Is2d);
@@ -148,8 +149,9 @@ CommandHandler.RegisterCommand("flip", args => {
         }
         case "set" when args.Length == 2: {
             if (bool.TryParse(args[1], out bool result)) {
-                flipEnabled = result;
-                return result ? "Enabled player flipping for session" : "Disabled player flipping for session";
+                Settings.Instance.Flip.Enabled = result;
+                Settings.SaveSettings();
+                return result ? "Enabled player flipping" : "Disabled player flipping";
             }
 
             return optionUsage;

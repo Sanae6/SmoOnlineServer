@@ -54,7 +54,7 @@ public class Settings {
 
     public class FlipTable {
         public List<Guid> Players { get; set; } = new List<Guid>();
-        public bool EnabledOnStart { get; set; } = true;
+        public bool Enabled { get; set; } = true;
         public FlipOptions Pov { get; set; } = FlipOptions.Both;
     }
 }
