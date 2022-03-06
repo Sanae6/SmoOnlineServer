@@ -146,6 +146,7 @@ public class Server {
                     ConnectPacket connect = new ConnectPacket();
                     connect.Deserialize(memory.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
                     lock (Clients) {
+                        client.Name = connect.ClientName;
                         bool firstConn = false;
                         switch (connect.ConnectionType) {
                             case ConnectionTypes.FirstConnection: {
@@ -154,7 +155,6 @@ public class Server {
                             }
                             case ConnectionTypes.Reconnecting: {
                                 client.Id = header.Id;
-                                client.Name = connect.ClientName;
                                 if (FindExistingClient(header.Id) is { } newClient) {
                                     if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
                                     newClient.Socket = client.Socket;

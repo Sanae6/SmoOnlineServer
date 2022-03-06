@@ -23,7 +23,7 @@ public class Client : IDisposable {
 
     public Client(Socket socket) {
         Socket = socket;
-        Logger = new Logger(socket.RemoteEndPoint?.ToString() ?? "Unknown User???");
+        Logger = new Logger("Unknown User");
     }
 
     public void Dispose() {
