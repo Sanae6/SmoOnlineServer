@@ -60,9 +60,6 @@ server.PacketHandler = (c, p) => {
     {
         if (p is PlayerPacket playerPacket) {
             c.Metadata["scenario"] = playerPacket.ScenarioNum;
-            if (!string.IsNullOrEmpty(playerPacket.Hack)) {
-                c.Logger.Warn($"In a capture {playerPacket.Hack}");
-            }
         }
     }
     switch (p) {
