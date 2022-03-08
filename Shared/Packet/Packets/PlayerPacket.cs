@@ -18,6 +18,7 @@ public struct PlayerPacket : IPacket {
     public bool Is2d = false;
     public bool ThrowingCap = false;
     public bool IsIt = false;
+    public bool IsCaptured = false;
     public int ScenarioNum = 0;
 
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x40)]
@@ -46,8 +47,9 @@ public struct PlayerPacket : IPacket {
         MemoryMarshal.Write(data[offset++..], ref Is2d);
         MemoryMarshal.Write(data[offset++..], ref ThrowingCap);
         MemoryMarshal.Write(data[offset++..], ref IsIt);
+        MemoryMarshal.Write(data[offset++..], ref IsCaptured);
         MemoryMarshal.Write(data[offset..], ref ScenarioNum);
-        offset += 5;
+        offset += 4;
         Encoding.UTF8.GetBytes(Stage).CopyTo(data[offset..(offset + 0x40)]);
         offset += 0x40;
         Encoding.UTF8.GetBytes(Act).CopyTo(data[offset..(offset + NameSize)]);
@@ -68,9 +70,9 @@ public struct PlayerPacket : IPacket {
         Is2d = MemoryMarshal.Read<bool>(data[offset++..]);
         ThrowingCap = MemoryMarshal.Read<bool>(data[offset++..]);
         IsIt = MemoryMarshal.Read<bool>(data[offset++..]);
-        // offset++; // padding
+        IsCaptured = MemoryMarshal.Read<bool>(data[offset++..]);
         ScenarioNum = MemoryMarshal.Read<int>(data[offset..]);
-        offset += 5;
+        offset += 4;
         Stage = Encoding.UTF8.GetString(data[offset..(offset + 0x40)]).TrimEnd('\0');
         offset += 0x40;
         Act = Encoding.UTF8.GetString(data[offset..(offset + NameSize)]).TrimEnd('\0');
