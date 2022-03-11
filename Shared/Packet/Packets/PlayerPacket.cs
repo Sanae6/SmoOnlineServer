@@ -35,6 +35,8 @@ public struct PlayerPacket : IPacket {
 
     public PlayerPacket() { }
 
+    public short Size => 0xE0;
+
     public void Serialize(Span<byte> data) {
         int offset = 0;
         MemoryMarshal.Write(data, ref Position);

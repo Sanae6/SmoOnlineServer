@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using Shared;
 using Shared.Packet;
 using Shared.Packet.Packets;
@@ -36,25 +37,26 @@ public class Client : IDisposable {
     public event PacketTransformerDel? PacketTransformer;
 
     public async Task Send<T>(T packet, Client? sender = null) where T : struct, IPacket {
-        IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.MaxPacketSize);
+        IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
         packet = (T) (PacketTransformer?.Invoke(sender, packet) ?? packet);
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
-            Type = Constants.PacketMap[typeof(T)].Type
+            Type = Constants.PacketMap[typeof(T)].Type,
+            PacketSize = packet.Size
         };
         Server.FillPacket(header, packet, memory.Memory);
-        await Send(memory.Memory[..Constants.MaxPacketSize], sender);
+        await Send(memory.Memory[..], sender);
         memory.Dispose();
     }
 
     public async Task Send(ReadOnlyMemory<byte> data, Client? sender) {
         if (!Connected) {
-            Server.Logger.Info($"Didn't send {(PacketType) data.Span[16]} to {Id} because they weren't connected yet");
+            Server.Logger.Info($"Didn't send {MemoryMarshal.Read<PacketType>(data.Span[16..])} to {Id} because they weren't connected yet");
             return;
         }
 
-        // Server.Logger.Info($"Sending {(PacketType) data.Span[16]} to {Id} from {other?.Id.ToString() ?? "server"}");
-        await Socket!.SendAsync(data[..Constants.MaxPacketSize], SocketFlags.None);
+        int packetSize = MemoryMarshal.Read<short>(data.Span[18..]);
+        await Socket!.SendAsync(data[..(Constants.HeaderSize + packetSize)], SocketFlags.None);
     }
 
     public static bool operator ==(Client? left, Client? right) {

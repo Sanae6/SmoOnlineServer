@@ -11,6 +11,8 @@ public struct CapPacket : IPacket {
     public Quaternion Rotation;
     public string CapAnim;
 
+    public short Size => 0x4C;
+
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref Position);
         MemoryMarshal.Write(data[12..], ref Position);

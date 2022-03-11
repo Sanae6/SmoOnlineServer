@@ -10,6 +10,7 @@ public struct CapturePacket : IPacket {
 
     public bool IsCaptured;
 
+    public short Size => Constants.CostumeNameSize + 1;
     public void Serialize(Span<byte> data) {
         Encoding.UTF8.GetBytes(ModelName).CopyTo(data[..Constants.CostumeNameSize]);
         MemoryMarshal.Write(data[Constants.CostumeNameSize..], ref IsCaptured);
@@ -19,4 +20,5 @@ public struct CapturePacket : IPacket {
         ModelName = Encoding.UTF8.GetString(data[..Constants.CostumeNameSize]).TrimNullTerm();
         IsCaptured = MemoryMarshal.Read<bool>(data[Constants.CostumeNameSize..]);
     }
+
 }

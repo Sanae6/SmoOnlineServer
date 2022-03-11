@@ -1,6 +1,6 @@
 ﻿namespace Shared.Packet;
 
-public enum PacketType {
+public enum PacketType : short {
     Unknown,
     Player,
     Cap,

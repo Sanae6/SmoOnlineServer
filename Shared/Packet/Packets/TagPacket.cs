@@ -6,6 +6,8 @@ namespace Shared.Packet.Packets;
 public struct TagPacket : IPacket {
     public bool IsIt;
 
+    public short Size => 1;
+
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref IsIt);
     }

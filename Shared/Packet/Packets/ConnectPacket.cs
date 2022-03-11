@@ -10,6 +10,8 @@ public struct ConnectPacket : IPacket {
 
     public ConnectPacket() { }
 
+    public short Size => 4 + Constants.CostumeNameSize;
+
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref ConnectionType);
         Encoding.UTF8.GetBytes(ClientName).CopyTo(data[4..(4 + Constants.CostumeNameSize)]);

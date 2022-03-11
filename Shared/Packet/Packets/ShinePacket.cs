@@ -6,6 +6,8 @@ namespace Shared.Packet.Packets;
 public struct ShinePacket : IPacket {
     public int ShineId;
 
+    public short Size => 4;
+
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref ShineId);
     }

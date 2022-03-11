@@ -6,7 +6,6 @@ using Shared.Packet.Packets;
 namespace Shared;
 
 public static class Constants {
-    public const int MaxPacketSize = 256;
     public const int MaxClients = 8;
     public const int CostumeNameSize = 0x20;
 
@@ -23,5 +22,4 @@ public static class Constants {
         .ToDictionary(type => type.GetCustomAttribute<PacketAttribute>()!.Type, type => type);
 
     public static int HeaderSize { get; } = Marshal.SizeOf<PacketHeader>();
-    public static int PacketDataSize { get; } = MaxPacketSize - HeaderSize;
 }

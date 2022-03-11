@@ -3,15 +3,19 @@
 [Packet(PacketType.Unknown)] // empty like boss
 // [Packet(PacketType.Command)]
 public struct UnhandledPacket : IPacket {
-    public byte[] Data = new byte[Constants.PacketDataSize];
+    public byte[] Data;
 
-    public UnhandledPacket() { }
+    public UnhandledPacket() {
+        Data = null!;
+    }
+    public short Size => 0;
 
     public void Serialize(Span<byte> data) {
         Data.CopyTo(data);
     }
 
     public void Deserialize(Span<byte> data) {
-        data.CopyTo(Data);
+        Data = data.ToArray();
     }
+
 }

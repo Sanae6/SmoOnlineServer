@@ -78,11 +78,11 @@ public class Server {
     }
 
     public async Task Broadcast<T>(T packet, Client sender) where T : struct, IPacket {
-        IMemoryOwner<byte> memory = memoryPool.RentZero(Constants.MaxPacketSize);
-
+        IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Guid.Empty,
-            Type = Constants.PacketMap[typeof(T)].Type
+            Type = Constants.PacketMap[typeof(T)].Type,
+            PacketSize = packet.Size
         };
         FillPacket(header, packet, memory.Memory);
         await Broadcast(memory, sender);
@@ -118,11 +118,12 @@ public class Server {
         bool first = true;
         try {
             while (true) {
-                memory = memoryPool.Rent(Constants.MaxPacketSize);
-                {
-                    int readOffset = 0;
-                    while (readOffset < Constants.MaxPacketSize) {
-                        int size = await socket.ReceiveAsync(memory.Memory[readOffset..Constants.MaxPacketSize], SocketFlags.None);
+                memory = memoryPool.Rent(Constants.HeaderSize);
+
+                async Task Read(Memory<byte> readMem, int readOffset = 0, int readSize = -1) {
+                    if (readSize == -1) readSize = Constants.HeaderSize;
+                    while (readOffset < readSize) {
+                        int size = await socket.ReceiveAsync(readMem[readOffset..readSize], SocketFlags.None);
                         if (size == 0) {
                             // treat it as a disconnect and exit
                             Logger.Info($"Socket {socket.RemoteEndPoint} disconnected.");
@@ -132,11 +133,17 @@ public class Server {
 
                         readOffset += size;
                     }
-
-                    if (readOffset < Constants.MaxPacketSize) break;
                 }
 
-                PacketHeader header = GetHeader(memory.Memory.Span[..Constants.MaxPacketSize]);
+                await Read(memory.Memory[..Constants.HeaderSize]);
+                PacketHeader header = GetHeader(memory.Memory.Span[..Constants.HeaderSize]);
+                {
+                    IMemoryOwner<byte> memTemp = memory;
+                    memory = memoryPool.Rent(Constants.HeaderSize + header.Size);
+                    memTemp.Memory.CopyTo(memory.Memory);
+                    memTemp.Dispose();
+                }
+                await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.Size)]);
 
                 // connection initialization
                 if (first) {
@@ -144,7 +151,7 @@ public class Server {
                     if (header.Type != PacketType.Connect) throw new Exception($"First packet was not init, instead it was {header.Type}");
 
                     ConnectPacket connect = new ConnectPacket();
-                    connect.Deserialize(memory.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
+                    connect.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]);
                     lock (Clients) {
                         client.Name = connect.ClientName;
                         bool firstConn = false;
@@ -188,10 +195,11 @@ public class Server {
 
                     List<Client> otherConnectedPlayers = Clients.FindAll(c => c.Id != header.Id && c.Connected && c.Socket != null);
                     await Parallel.ForEachAsync(otherConnectedPlayers, async (other, _) => {
-                        IMemoryOwner<byte> tempBuffer = MemoryPool<byte>.Shared.RentZero(Constants.MaxPacketSize);
+                        IMemoryOwner<byte> tempBuffer = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + (other.CurrentCostume.HasValue ? Math.Max(connect.Size, other.CurrentCostume.Value.Size) : connect.Size));
                         PacketHeader connectHeader = new PacketHeader {
                             Id = other.Id,
-                            Type = PacketType.Connect
+                            Type = PacketType.Connect,
+                            PacketSize = connect.Size
                         };
                         MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
@@ -199,12 +207,13 @@ public class Server {
                             ClientName = other.Name
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
-                        await client.Send(tempBuffer.Memory, null);
+                        await client.Send(tempBuffer.Memory[..(Constants.HeaderSize + connect.Size)], null);
                         if (other.CurrentCostume.HasValue) {
                             connectHeader.Type = PacketType.Costume;
+                            connectHeader.PacketSize = other.CurrentCostume.Value.Size;
                             MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
-                            other.CurrentCostume.Value.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
-                            await client.Send(tempBuffer.Memory, null);
+                            other.CurrentCostume.Value.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + connectHeader.PacketSize)]);
+                            await client.Send(tempBuffer.Memory[..(Constants.HeaderSize + connectHeader.PacketSize)], null);
                         }
 
                         tempBuffer.Dispose();
@@ -219,14 +228,14 @@ public class Server {
                     CostumePacket costumePacket = new CostumePacket {
                         BodyName = ""
                     };
-                    costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
+                    costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + costumePacket.Size)]);
                     client.CurrentCostume = costumePacket;
                 }
 
                 try {
                     // if (header.Type is not PacketType.Cap and not PacketType.Player) client.Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
-                    packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..Constants.MaxPacketSize]);
+                    packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + packet.Size)]);
                     if (PacketHandler?.Invoke(client, packet) is false) {
                         memory.Dispose();
                         continue;
