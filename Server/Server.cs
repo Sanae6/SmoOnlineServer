@@ -120,7 +120,8 @@ public class Server {
             while (true) {
                 memory = memoryPool.Rent(Constants.HeaderSize);
 
-                async Task<bool> Read(Memory<byte> readMem, int readOffset = 0, int readSize = -1) {
+                async Task<bool> Read(Memory<byte> readMem, int readSize = -1) {
+                    int readOffset = 0;
                     if (readSize == -1) readSize = Constants.HeaderSize;
                     while (readOffset < readSize) {
                         int size = await socket.ReceiveAsync(readMem[readOffset..readSize], SocketFlags.None);
@@ -146,7 +147,7 @@ public class Server {
                     memTemp.Dispose();
                 }
                 if (header.PacketSize > 0 
-                    && !await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]))
+                    && !await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)], header.PacketSize))
                     break;
 
                 // connection initialization
