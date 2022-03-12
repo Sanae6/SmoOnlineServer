@@ -46,18 +46,19 @@ public class Server {
         }
         catch (OperationCanceledException) {
             // ignore the exception, it's just for closing the server
-        }
 
-        Logger.Info("Server closing");
+            Logger.Info("Server closing");
 
-        try {
-            serverSocket.Shutdown(SocketShutdown.Both);
-        }
-        finally {
-            serverSocket.Close();
-        }
+            try {
+                serverSocket.Shutdown(SocketShutdown.Both);
+            } catch {
+                // ignored
+            } finally {
+                serverSocket.Close();
+            }
 
-        Logger.Info("Server closed");
+            Logger.Info("Server closed");
+        }
     }
 
     public static void FillPacket<T>(PacketHeader header, T packet, Memory<byte> memory) where T : struct, IPacket {
@@ -116,10 +117,9 @@ public class Server {
         try {
             while (true) {
                 memory = memoryPool.Rent(Constants.HeaderSize);
-
-                async Task<bool> Read(Memory<byte> readMem, int readSize = -1) {
-                    int readOffset = 0;
-                    if (readSize == -1) readSize = Constants.HeaderSize;
+                
+                async Task<bool> Read(Memory<byte> readMem, int readSize, int readOffset) {
+                    readSize += readOffset;
                     while (readOffset < readSize) {
                         int size = await socket.ReceiveAsync(readMem[readOffset..readSize], SocketFlags.None);
                         if (size == 0) {
@@ -135,20 +135,21 @@ public class Server {
                     return true;
                 }
 
-                if (!await Read(memory.Memory[..Constants.HeaderSize]))
+                if (!await Read(memory.Memory[..Constants.HeaderSize], Constants.HeaderSize, 0))
                     throw new Exception("Not enough bytes for packet header sent to server");
                 PacketHeader header = GetHeader(memory.Memory.Span[..Constants.HeaderSize]);
-                {
-                    IMemoryOwner<byte> memTemp = memory;
+                Range packetRange = Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize);
+                if (header.PacketSize > 0) {
+                    IMemoryOwner<byte> memTemp = memory; // header to copy to new memory
                     memory = memoryPool.Rent(Constants.HeaderSize + header.PacketSize);
-                    memTemp.Memory[..Constants.HeaderSize].CopyTo(memory.Memory[..Constants.HeaderSize]);
+                    memTemp.Memory.Span[..Constants.HeaderSize].CopyTo(memory.Memory.Span[..Constants.HeaderSize]);
                     memTemp.Dispose();
+                    Logger.Info("smth");
+                    if (!await Read(memory.Memory, header.PacketSize, Constants.HeaderSize))
+                        throw new Exception("Not enough bytes for packet data sent to server");
                 }
-                if (header.PacketSize > 0
-                    && !await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)], header.PacketSize))
-                    throw new Exception("Not enough bytes for packet data sent to server");
-                
-                Logger.Info($"Got your mom {header.Type}");
+
+                Logger.Info($"Got your mom {header.Id} {header.Type} 0x{header.PacketSize:X} 0x{memory.Memory.Length:X} 0x{header.Size:X}");
 
                 // connection initialization
                 if (first) {
@@ -156,7 +157,7 @@ public class Server {
                     if (header.Type != PacketType.Connect) throw new Exception($"First packet was not init, instead it was {header.Type}");
 
                     ConnectPacket connect = new ConnectPacket();
-                    connect.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]);
+                    connect.Deserialize(memory.Memory.Span[packetRange]);
                     lock (Clients) {
                         client.Name = connect.ClientName;
                         bool firstConn = false;
@@ -266,7 +267,9 @@ public class Server {
         Logger.Info($"Client {socket.RemoteEndPoint} ({client.Name}/{client.Id}) disconnected from the server");
 
         Clients.Remove(client);
-        client.Dispose();
+        try {
+            client.Dispose();
+        } catch {/*lol*/}
         Task.Run(() => Broadcast(new DisconnectPacket(), client));
     }
 
