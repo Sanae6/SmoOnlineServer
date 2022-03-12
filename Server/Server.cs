@@ -147,6 +147,8 @@ public class Server {
                 if (header.PacketSize > 0
                     && !await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)], header.PacketSize))
                     throw new Exception("Not enough bytes for packet data sent to server");
+                
+                Logger.Info($"Got your mom {header.Type}");
 
                 // connection initialization
                 if (first) {
@@ -206,7 +208,7 @@ public class Server {
                         };
                         MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
-                            ConnectionType = ConnectionTypes.FirstConnection, // doesn't matter what it is :)
+                            ConnectionType = ConnectionTypes.FirstConnection, // doesn't matter what it is
                             ClientName = other.Name
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
