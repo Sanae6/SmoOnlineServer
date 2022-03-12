@@ -39,8 +39,8 @@ public class Server {
 
                     Task.Run(() => HandleSocket(socket));
                 }
-                catch {
-                    // super ignore this
+                catch (Exception e) {
+                    Logger.Error($"Error occured while setting up socket handler? {e}");
                 }
             }
         }
@@ -52,9 +52,6 @@ public class Server {
 
         try {
             serverSocket.Shutdown(SocketShutdown.Both);
-        }
-        catch (Exception) {
-            // ignore
         }
         finally {
             serverSocket.Close();
