@@ -120,7 +120,7 @@ public class Server {
             while (true) {
                 memory = memoryPool.Rent(Constants.HeaderSize);
 
-                async Task Read(Memory<byte> readMem, int readOffset = 0, int readSize = -1) {
+                async Task<bool> Read(Memory<byte> readMem, int readOffset = 0, int readSize = -1) {
                     if (readSize == -1) readSize = Constants.HeaderSize;
                     while (readOffset < readSize) {
                         int size = await socket.ReceiveAsync(readMem[readOffset..readSize], SocketFlags.None);
@@ -128,22 +128,26 @@ public class Server {
                             // treat it as a disconnect and exit
                             Logger.Info($"Socket {socket.RemoteEndPoint} disconnected.");
                             if (socket.Connected) await socket.DisconnectAsync(false);
-                            break;
+                            return false;
                         }
 
                         readOffset += size;
                     }
+
+                    return true;
                 }
 
-                await Read(memory.Memory[..Constants.HeaderSize]);
+                if (!await Read(memory.Memory[..Constants.HeaderSize])) break;
                 PacketHeader header = GetHeader(memory.Memory.Span[..Constants.HeaderSize]);
                 {
                     IMemoryOwner<byte> memTemp = memory;
-                    memory = memoryPool.Rent(Constants.HeaderSize + header.Size);
+                    memory = memoryPool.Rent(Constants.HeaderSize + header.PacketSize);
                     memTemp.Memory.CopyTo(memory.Memory);
                     memTemp.Dispose();
                 }
-                await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.Size)]);
+                if (header.PacketSize > 0 
+                    && !await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]))
+                    break;
 
                 // connection initialization
                 if (first) {
