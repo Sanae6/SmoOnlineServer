@@ -138,17 +138,18 @@ public class Server {
                     return true;
                 }
 
-                if (!await Read(memory.Memory[..Constants.HeaderSize])) break;
+                if (!await Read(memory.Memory[..Constants.HeaderSize]))
+                    throw new Exception("Not enough bytes for packet header sent to server");
                 PacketHeader header = GetHeader(memory.Memory.Span[..Constants.HeaderSize]);
                 {
                     IMemoryOwner<byte> memTemp = memory;
                     memory = memoryPool.Rent(Constants.HeaderSize + header.PacketSize);
-                    memTemp.Memory.CopyTo(memory.Memory);
+                    memTemp.Memory[..Constants.HeaderSize].CopyTo(memory.Memory[..Constants.HeaderSize]);
                     memTemp.Dispose();
                 }
-                if (header.PacketSize > 0 
+                if (header.PacketSize > 0
                     && !await Read(memory.Memory[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)], header.PacketSize))
-                    break;
+                    throw new Exception("Not enough bytes for packet data sent to server");
 
                 // connection initialization
                 if (first) {
@@ -255,14 +256,15 @@ public class Server {
         }
         catch (Exception e) {
             if (e is SocketException {SocketErrorCode: SocketError.ConnectionReset}) {
-                client.Logger.Info($"Client {socket.RemoteEndPoint} ({client.Id}) disconnected from the server");
+                client.Logger.Info($"Disconnected from the server: Connection reset");
             } else {
-                client.Logger.Error($"Exception on socket {socket.RemoteEndPoint} ({client.Id}) and disconnecting for: {e}");
+                client.Logger.Error($"Disconnecting due to exception: {e}");
                 if (socket.Connected) Task.Run(() => socket.DisconnectAsync(false));
             }
 
             memory?.Dispose();
         }
+        Logger.Info($"Client {socket.RemoteEndPoint} ({client.Name}/{client.Id}) disconnected from the server");
 
         Clients.Remove(client);
         client.Dispose();
