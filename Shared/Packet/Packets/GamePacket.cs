@@ -10,6 +10,12 @@ public struct GamePacket : IPacket {
     public byte ScenarioNum;
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = StageSize)]
     public string Stage = "";
+
+    public GamePacket() {
+        Is2d = false;
+        ScenarioNum = 0;
+    }
+
     public short Size => 0x32;
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data[..0], ref Is2d);

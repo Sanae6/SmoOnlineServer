@@ -136,7 +136,7 @@ public class Server {
                 }
 
                 if (!await Read(memory.Memory[..Constants.HeaderSize], Constants.HeaderSize, 0))
-                    throw new Exception("Not enough bytes for packet header sent to server");
+                    break;
                 PacketHeader header = GetHeader(memory.Memory.Span[..Constants.HeaderSize]);
                 Range packetRange = Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize);
                 if (header.PacketSize > 0) {
@@ -145,7 +145,7 @@ public class Server {
                     memTemp.Memory.Span[..Constants.HeaderSize].CopyTo(memory.Memory.Span[..Constants.HeaderSize]);
                     memTemp.Dispose();
                     if (!await Read(memory.Memory, header.PacketSize, Constants.HeaderSize))
-                        throw new Exception("Not enough bytes for packet data sent to server");
+                        break;
                 }
 
                 // if (header.Type is not PacketType.Player and not PacketType.Cap and not PacketType.Capture)Logger.Info($"Got your mom {header.Id} {header.Type} 0x{header.PacketSize:X} 0x{memory.Memory.Length:X} 0x{header.Size:X}");
