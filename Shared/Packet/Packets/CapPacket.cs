@@ -9,19 +9,22 @@ public struct CapPacket : IPacket {
     public const int NameSize = 0x30;
     public Vector3 Position;
     public Quaternion Rotation;
+    public bool CapOut;
     public string CapAnim;
 
-    public short Size => 0x4C;
+    public short Size => 0x50;
 
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref Position);
-        MemoryMarshal.Write(data[12..], ref Position);
-        Encoding.UTF8.GetBytes(CapAnim).CopyTo(data[28..]);
+        MemoryMarshal.Write(data[12..], ref Rotation);
+        MemoryMarshal.Write(data[28..], ref CapOut);
+        Encoding.UTF8.GetBytes(CapAnim).CopyTo(data[32..(32 + NameSize)]);
     }
 
     public void Deserialize(Span<byte> data) {
         Position = MemoryMarshal.Read<Vector3>(data);
         Rotation = MemoryMarshal.Read<Quaternion>(data[12..]);
-        CapAnim = Encoding.UTF8.GetString(data[28..]).TrimEnd('\0');
+        CapOut = MemoryMarshal.Read<bool>(data[28..]);
+        CapAnim = Encoding.UTF8.GetString(data[32..(32 + NameSize)]).TrimEnd('\0');
     }
 }

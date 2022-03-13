@@ -12,14 +12,15 @@ CancellationTokenSource cts = new CancellationTokenSource();
 Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
 
-server.ClientJoined += async (c, _) => {
+server.ClientJoined += (c, _) => {
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = 0;
+    c.Metadata["2d"] = false;
     c.PacketTransformer += (sender, packet) => {
-        if (Settings.Instance.Scenario.MergeEnabled && packet is PlayerPacket playerPacket) {
-            playerPacket.ScenarioNum = (int) c.Metadata["scenario"];
-            return playerPacket;
+        if (Settings.Instance.Scenario.MergeEnabled && packet is GamePacket gamePacket) {
+            gamePacket.ScenarioNum = (byte) c.Metadata["scenario"];
+            return gamePacket;
         }
 
         return packet;
@@ -58,8 +59,9 @@ float MarioSize(bool is2d) {
 
 server.PacketHandler = (c, p) => {
     {
-        if (p is PlayerPacket playerPacket) {
-            c.Metadata["scenario"] = playerPacket.ScenarioNum;
+        if (p is GamePacket gamePacket) {
+            c.Metadata["scenario"] = gamePacket.ScenarioNum;
+            c.Metadata["2d"] = gamePacket.Is2d;
         }
     }
     switch (p) {
@@ -80,7 +82,7 @@ server.PacketHandler = (c, p) => {
         case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
                                             && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
                                             && Settings.Instance.Flip.Players.Contains(c.Id): {
-            playerPacket.Position += Vector3.UnitY * MarioSize(playerPacket.Is2d);
+            playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
             playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
             server.Broadcast(playerPacket, c);
             return false;
@@ -90,7 +92,7 @@ server.PacketHandler = (c, p) => {
                                             && !Settings.Instance.Flip.Players.Contains(c.Id): {
             server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
                 if (Settings.Instance.Flip.Players.Contains(to.Id)) {
-                    sp.Position += Vector3.UnitY * MarioSize(playerPacket.Is2d);
+                    sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
                     sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
                 }
 

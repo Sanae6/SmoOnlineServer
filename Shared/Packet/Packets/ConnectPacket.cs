@@ -21,4 +21,9 @@ public struct ConnectPacket : IPacket {
         ConnectionType = MemoryMarshal.Read<ConnectionTypes>(data);
         ClientName = Encoding.UTF8.GetString(data[4..(4 + Constants.CostumeNameSize)]).TrimNullTerm();
     }
+
+    public enum ConnectionTypes {
+        FirstConnection,
+        Reconnecting
+    }
 }

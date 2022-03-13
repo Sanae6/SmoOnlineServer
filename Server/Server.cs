@@ -144,12 +144,11 @@ public class Server {
                     memory = memoryPool.Rent(Constants.HeaderSize + header.PacketSize);
                     memTemp.Memory.Span[..Constants.HeaderSize].CopyTo(memory.Memory.Span[..Constants.HeaderSize]);
                     memTemp.Dispose();
-                    Logger.Info("smth");
                     if (!await Read(memory.Memory, header.PacketSize, Constants.HeaderSize))
                         throw new Exception("Not enough bytes for packet data sent to server");
                 }
 
-                Logger.Info($"Got your mom {header.Id} {header.Type} 0x{header.PacketSize:X} 0x{memory.Memory.Length:X} 0x{header.Size:X}");
+                // if (header.Type is not PacketType.Player and not PacketType.Cap and not PacketType.Capture)Logger.Info($"Got your mom {header.Id} {header.Type} 0x{header.PacketSize:X} 0x{memory.Memory.Length:X} 0x{header.Size:X}");
 
                 // connection initialization
                 if (first) {
@@ -162,11 +161,11 @@ public class Server {
                         client.Name = connect.ClientName;
                         bool firstConn = false;
                         switch (connect.ConnectionType) {
-                            case ConnectionTypes.FirstConnection: {
+                            case ConnectPacket.ConnectionTypes.FirstConnection: {
                                 firstConn = true;
                                 break;
                             }
-                            case ConnectionTypes.Reconnecting: {
+                            case ConnectPacket.ConnectionTypes.Reconnecting: {
                                 client.Id = header.Id;
                                 if (FindExistingClient(header.Id) is { } newClient) {
                                     if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
@@ -174,7 +173,7 @@ public class Server {
                                     client = newClient;
                                 } else {
                                     firstConn = true;
-                                    connect.ConnectionType = ConnectionTypes.FirstConnection;
+                                    connect.ConnectionType = ConnectPacket.ConnectionTypes.FirstConnection;
                                 }
 
                                 break;
@@ -209,7 +208,7 @@ public class Server {
                         };
                         MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
-                            ConnectionType = ConnectionTypes.FirstConnection, // doesn't matter what it is
+                            ConnectionType = ConnectPacket.ConnectionTypes.FirstConnection, // doesn't matter what it is
                             ClientName = other.Name
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
