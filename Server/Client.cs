@@ -51,7 +51,7 @@ public class Client : IDisposable {
 
     public async Task Send(ReadOnlyMemory<byte> data, Client? sender) {
         if (!Connected) {
-            Server.Logger.Info($"Didn't send {MemoryMarshal.Read<PacketType>(data.Span[16..])} to {Id} because they weren't connected yet");
+            // Server.Logger.Info($"Didn't send {MemoryMarshal.Read<PacketType>(data.Span[16..])} to {Id} because they weren't connected yet");
             return;
         }
 

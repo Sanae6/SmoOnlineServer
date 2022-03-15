@@ -53,6 +53,11 @@ public class Settings {
         public bool MergeEnabled { get; set; } = false;
     }
 
+    public class HiddenPlayers {
+        public List<Guid> Players { get; set; } = new List<Guid>();
+        public bool Enabled { get; set; } = false;
+    }
+
     public class FlipTable {
         public List<Guid> Players { get; set; } = new List<Guid>();
         public bool Enabled { get; set; } = true;
