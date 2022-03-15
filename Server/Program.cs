@@ -17,9 +17,18 @@ server.ClientJoined += (c, _) => {
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = 0;
     c.Metadata["2d"] = false;
+    foreach (Client client in server.Clients.Where(client => client.Metadata["lastGamePacket"] != null).ToArray()) {
+        try {
+            await c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client);
+        }
+        catch {
+            // lol who gives a fuck
+        }
+    }
+
     c.PacketTransformer += (sender, packet) => {
         if (Settings.Instance.Scenario.MergeEnabled && packet is GamePacket gamePacket) {
-            gamePacket.ScenarioNum = (byte) c.Metadata["scenario"];
+            gamePacket.ScenarioNum = (byte?) c.Metadata["scenario"] ?? 0;
             return gamePacket;
         }
 
@@ -29,7 +38,7 @@ server.ClientJoined += (c, _) => {
 
 async Task ClientSyncShineBag(Client client) {
     try {
-        ConcurrentBag<int> clientBag = ((ConcurrentBag<int>)client.Metadata["shineSync"]);
+        ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (client.Metadata["shineSync"] ??= new ConcurrentBag<int>());
         foreach (int shine in shineBag.Except(clientBag).ToArray()) {
             clientBag.Add(shine);
             await client.Send(new ShinePacket {
@@ -67,6 +76,7 @@ server.PacketHandler = (c, p) => {
             case GamePacket gamePacket: {
                 c.Metadata["scenario"] = gamePacket.ScenarioNum;
                 c.Metadata["2d"] = gamePacket.Is2d;
+                c.Metadata["lastGamePacket"] = gamePacket;
                 break;
             }
             case TagPacket tagPacket: {

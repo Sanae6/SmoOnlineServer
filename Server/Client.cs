@@ -9,7 +9,7 @@ using Shared.Packet.Packets;
 namespace Server;
 
 public class Client : IDisposable {
-    public readonly ConcurrentDictionary<string, object> Metadata = new ConcurrentDictionary<string, object>(); // can be used to store any information about a player
+    public readonly ConcurrentDictionary<string, object?> Metadata = new ConcurrentDictionary<string, object?>(); // can be used to store any information about a player
     public bool Connected = false;
     public CostumePacket? CurrentCostume = null; // required for proper client sync
     public string Name {
