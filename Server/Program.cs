@@ -199,7 +199,7 @@ CommandHandler.RegisterCommand("tag", args => {
                     Parallel.ForEachAsync(server.Clients.Except(seekers), async (hider, _) =>
                         await hider.Send(new TagPacket {
                             UpdateType = TagPacket.TagUpdate.State,
-                            IsIt = true
+                            IsIt = false
                         })
                     )
                 );
