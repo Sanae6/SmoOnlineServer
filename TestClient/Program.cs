@@ -71,7 +71,8 @@ async Task S(string n, Guid otherId, Guid ownId) {
         if (header.Id != otherId) continue;
         if (reboundPackets.All(x => x != type)) continue;
         if (type == PacketType.Player) {
-            
+            PlayerPacket packet = new PlayerPacket();
+            packet.
         }
         header.Id = ownId;
         MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);
@@ -81,7 +82,7 @@ async Task S(string n, Guid otherId, Guid ownId) {
 }
 
 Guid temp = baseOtherId;
-IEnumerable<Task> stuff = Enumerable.Range(0, 7).Select(i => {
+IEnumerable<Task> stuff = Enumerable.Range(0, 1).Select(i => {
     Guid newOwnId = Guid.NewGuid();
     Task task = S($"Sussy {i}", temp, newOwnId);
     temp = newOwnId;
