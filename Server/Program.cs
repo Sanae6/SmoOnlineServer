@@ -19,7 +19,7 @@ server.ClientJoined += (c, _) => {
     c.Metadata["2d"] = false;
     foreach (Client client in server.Clients.Where(client => client.Metadata["lastGamePacket"] != null).ToArray()) {
         try {
-            await c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client);
+            Task.WaitAll(c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client));
         }
         catch {
             // lol who gives a fuck
