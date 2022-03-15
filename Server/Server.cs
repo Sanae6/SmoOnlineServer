@@ -182,7 +182,7 @@ public class Server {
                             case ConnectPacket.ConnectionTypes.Reconnecting: {
                                 client.Id = header.Id;
                                 if (FindExistingClient(header.Id) is { } newClient) {
-                                    // if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
+                                    if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
                                     newClient.Socket = client.Socket;
                                     client = newClient;
                                 } else {
