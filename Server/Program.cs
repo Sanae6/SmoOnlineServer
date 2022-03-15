@@ -141,7 +141,7 @@ CommandHandler.RegisterCommand("tag", args => {
     if (args.Length < 3)
         return optionUsage;
     switch (args[0]) {
-        case "time" when args.Length == 3: {
+        case "time" when args.Length == 4: {
             if (args[1] != "*" && server.Clients.All(x => x.Name != args[1])) return $"Cannot find user {args[1]}";
             Client? client = server.Clients.FirstOrDefault(x => x.Name == args[1]);
             if (!ushort.TryParse(args[2], out ushort minutes)) return $"Invalid time for minutes {args[2]} (range: 0-65535)";
