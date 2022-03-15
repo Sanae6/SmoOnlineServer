@@ -40,7 +40,7 @@ public class Client : IDisposable {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
         packet = (T) (PacketTransformer?.Invoke(sender, packet) ?? packet);
         PacketHeader header = new PacketHeader {
-            Id = sender?.Id ?? Guid.Empty,
+            Id = sender?.Id ?? Id,
             Type = Constants.PacketMap[typeof(T)].Type,
             PacketSize = packet.Size
         };
