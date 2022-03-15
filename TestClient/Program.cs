@@ -70,9 +70,11 @@ async Task S(string n, Guid otherId, Guid ownId) {
         PacketType type = header.Type;
         if (header.Id != otherId) continue;
         if (reboundPackets.All(x => x != type)) continue;
-        if (type == PacketType.Player) {
-            PlayerPacket packet = new PlayerPacket();
-            packet.
+        if (type == PacketType.Tag) {
+            TagPacket packet = new TagPacket();
+            packet.Deserialize(owner.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]);
+            packet.IsIt = true;
+            packet.Serialize(owner.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]);
         }
         header.Id = ownId;
         MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);

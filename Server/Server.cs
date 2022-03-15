@@ -28,6 +28,7 @@ public class Server {
             while (true) {
                 Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, 1);
 
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
