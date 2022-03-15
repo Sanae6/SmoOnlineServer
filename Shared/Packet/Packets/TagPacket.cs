@@ -19,7 +19,7 @@ public struct TagPacket : IPacket {
     }
 
     public void Deserialize(Span<byte> data) {
-        UpdateType = MemoryMarshal.Read<bool>(data);
+        UpdateType = MemoryMarshal.Read<TagUpdate>(data);
         IsIt = MemoryMarshal.Read<bool>(data[1..]);
         Seconds = MemoryMarshal.Read<byte>(data[2..]);
         Minutes = MemoryMarshal.Read<ushort>(data[3..]);
