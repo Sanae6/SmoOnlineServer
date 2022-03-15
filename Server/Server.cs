@@ -31,7 +31,7 @@ public class Server {
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
                 try {
-                    if (Clients.Count == Constants.MaxClients) {
+                    if (Clients.Count == Settings.Instance.Server.MaxPlayers) {
                         Logger.Warn("Turned away client due to max clients");
                         await socket.DisconnectAsync(false);
                         continue;
@@ -182,7 +182,7 @@ public class Server {
                             case ConnectPacket.ConnectionTypes.Reconnecting: {
                                 client.Id = header.Id;
                                 if (FindExistingClient(header.Id) is { } newClient) {
-                                    if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
+                                    // if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
                                     newClient.Socket = client.Socket;
                                     client = newClient;
                                 } else {
@@ -279,7 +279,8 @@ public class Server {
         }
         Logger.Info($"Client {socket.RemoteEndPoint} ({client.Name}/{client.Id}) disconnected from the server");
 
-        Clients.Remove(client);
+        // Clients.Remove(client)
+        client.Connected = false;
         try {
             client.Dispose();
         } catch {/*lol*/}

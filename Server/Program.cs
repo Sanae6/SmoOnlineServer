@@ -212,7 +212,7 @@ CommandHandler.RegisterCommand("tag", args => {
     }
 });
 
-CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Select(x => x.Name))}");
+CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Select(x => $"{x.Name} ({x.Id})"))}");
 
 CommandHandler.RegisterCommand("flip", args => {
     const string optionUsage = "Valid options: \n\tlist\n\tadd <user id>\n\tremove <user id>\n\tset <true/false>\n\tpov <both/self/others>";
@@ -263,7 +263,7 @@ CommandHandler.RegisterCommand("flip", args => {
 });
 
 CommandHandler.RegisterCommand("shine", args => {
-    const string optionUsage = "Valid options: list, clear";
+    const string optionUsage = "Valid options: list, clear, sync";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
@@ -274,6 +274,9 @@ CommandHandler.RegisterCommand("shine", args => {
             foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient => (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
 
             return "Cleared shine bags";
+        case "sync" when args.Length == 1:
+            SyncShineBag();
+            return "Synced shine bag automatically";
         default:
             return optionUsage;
     }

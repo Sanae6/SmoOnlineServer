@@ -46,6 +46,7 @@ public class Settings {
     public class ServerTable {
         public string Address { get; set; } = IPAddress.Any.ToString();
         public ushort Port { get; set; } = 1027;
+        public byte MaxPlayers { get; set; } = 8;
     }
 
     public class ScenarioTable {
