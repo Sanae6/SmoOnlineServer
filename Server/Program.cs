@@ -17,7 +17,7 @@ server.ClientJoined += (c, _) => {
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = 0;
     c.Metadata["2d"] = false;
-    foreach (Client client in server.Clients.Where(client => client.Metadata["lastGamePacket"] != null).ToArray()) {
+    foreach (Client client in server.Clients.Where(client => client.Metadata.ContainsKey("lastGamePacket")).ToArray()) {
         try {
             Task.WaitAll(c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client));
         }
