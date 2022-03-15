@@ -1,7 +1,7 @@
 ﻿namespace Server;
 
 public static class CommandHandler {
-    public delegate string Handler(string[] args);
+    public delegate Response Handler(string[] args);
 
     public static Dictionary<string, Handler> Handlers = new Dictionary<string, Handler>();
 
@@ -13,7 +13,7 @@ public static class CommandHandler {
         Handlers[name] = handler;
     }
 
-    public static string GetResult(string input) {
+    public static Response GetResult(string input) {
         try {
             string[] args = input.Split(' ');
             if (args.Length == 0) return "No command entered, see help command for valid commands";
@@ -23,5 +23,17 @@ public static class CommandHandler {
         catch (Exception e) {
             return $"An error occured while trying to process your command: {e}";
         }
+    }
+
+    public class Response {
+        public string[] ReturnStrings = null!;
+        private Response(){}
+
+        public static implicit operator Response(string value) => new Response {
+            ReturnStrings = value.Split('\n')
+        };
+        public static implicit operator Response(string[] values) => new Response {
+            ReturnStrings = values
+        };
     }
 }

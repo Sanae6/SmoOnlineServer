@@ -1,0 +1,1 @@
+﻿public record Time(ushort Minutes, byte Seconds, DateTime When) {}

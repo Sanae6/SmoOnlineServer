@@ -86,6 +86,20 @@ public class Server {
         await Broadcast(memory, sender);
     }
 
+    public Task Broadcast<T>(T packet) where T : struct, IPacket {
+        return Task.WhenAll(Clients.Where(c => c.Connected).Select(async client => {
+            IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
+            PacketHeader header = new PacketHeader {
+                Id = client.Id,
+                Type = Constants.PacketMap[typeof(T)].Type,
+                PacketSize = packet.Size
+            };
+            FillPacket(header, packet, memory.Memory);
+            await client.Send(memory.Memory, client);
+            memory.Dispose();
+        }));
+    }
+
     /// <summary>
     ///     Takes ownership of data and disposes once done.
     /// </summary>

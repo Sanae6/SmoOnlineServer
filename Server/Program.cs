@@ -34,7 +34,8 @@ async Task ClientSyncShineBag(Client client) {
                 ShineId = shine
             });
         }
-    } catch {
+    }
+    catch {
         // errors that can happen when sending will crash the server :)
     }
 }
@@ -42,7 +43,8 @@ async Task ClientSyncShineBag(Client client) {
 async void SyncShineBag() {
     try {
         await Parallel.ForEachAsync(server.Clients.ToArray(), async (client, _) => await ClientSyncShineBag(client));
-    } catch {
+    }
+    catch {
         // errors that can happen shines change will crash the server :)
     }
 }
@@ -59,9 +61,17 @@ float MarioSize(bool is2d) {
 
 server.PacketHandler = (c, p) => {
     {
-        if (p is GamePacket gamePacket) {
-            c.Metadata["scenario"] = gamePacket.ScenarioNum;
-            c.Metadata["2d"] = gamePacket.Is2d;
+        switch (p) {
+            case GamePacket gamePacket: {
+                c.Metadata["scenario"] = gamePacket.ScenarioNum;
+                c.Metadata["2d"] = gamePacket.Is2d;
+                break;
+            }
+            case TagPacket tagPacket: {
+                if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
+                if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0) c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
+                break;
+            }
         }
     }
     switch (p) {
@@ -124,10 +134,76 @@ CommandHandler.RegisterCommand("scenario", args => {
     }
 });
 
-CommandHandler.RegisterCommand("list", _ => $"List: {string.Join(", ", server.Clients.Select(x => $"{x.Name} ({x.Id})"))}");
+CommandHandler.RegisterCommand("tag", args => {
+    const string optionUsage = "Valid options:\n\ttime <user/*> <minutes[0-65535]> <seconds[0-59]>\n\tseeking <user/*> <true/false>\n\tstart <time> <seekers>";
+    if (args.Length < 3)
+        return optionUsage;
+    switch (args[0]) {
+        case "time" when args.Length == 3: {
+            if (args[1] != "*" && server.Clients.All(x => x.Name != args[1])) return $"Cannot find user {args[1]}";
+            Client? client = server.Clients.FirstOrDefault(x => x.Name == args[1]);
+            if (!ushort.TryParse(args[2], out ushort minutes)) return $"Invalid time for minutes {args[2]} (range: 0-65535)";
+            if (!byte.TryParse(args[3], out byte seconds) || seconds >= 60) return $"Invalid time for seconds {args[3]} (range: 0-59)";
+            TagPacket tagPacket = new TagPacket {
+                UpdateType = TagPacket.TagUpdate.Time,
+                Minutes = minutes,
+                Seconds = seconds
+            };
+            if (args[1] == "*")
+                server.Broadcast(tagPacket);
+            else
+                client?.Send(tagPacket);
+            return $"Set time for {(args[1] == "*" ? "everyone" : args[1])} to {minutes}:{seconds}";
+        }
+        case "seeking" when args.Length == 3: {
+            if (args[1] != "*" && server.Clients.All(x => x.Name != args[1])) return $"Cannot find user {args[1]}";
+            Client? client = server.Clients.FirstOrDefault(x => x.Name == args[1]);
+            if (!bool.TryParse(args[2], out bool seeking)) return $"Usage: tag seeking {args[1]} <true/false>";
+            TagPacket tagPacket = new TagPacket {
+                UpdateType = TagPacket.TagUpdate.State,
+                IsIt = seeking
+            };
+            if (args[1] == "*")
+                server.Broadcast(tagPacket);
+            else
+                client?.Send(tagPacket);
+            return $"Set {(args[1] == "*" ? "everyone" : args[1])} to {(seeking ? "seeker" : "hider")}";
+        }
+        case "start" when args.Length > 2: {
+            if (!byte.TryParse(args[1], out byte time)) return $"Invalid countdown seconds {args[1]} (range: 0-255)";
+            string[] seekerNames = args[2..];
+            Client[] seekers = server.Clients.Where(c => seekerNames.Contains(c.Name)).ToArray();
+            if (seekers.Length != seekerNames.Length)
+                return $"Couldn't find seeker{(seekerNames.Length > 1 ? "s" : "")}: {string.Join(", ", seekerNames.Where(name => server.Clients.All(c => c.Name != name)))}";
+            Task.Run(async () => {
+                int realTime = 1000 * time;
+                await Task.Delay(realTime);
+                await Task.WhenAll(
+                    Parallel.ForEachAsync(seekers, async (seeker, _) =>
+                        await seeker.Send(new TagPacket {
+                            UpdateType = TagPacket.TagUpdate.State,
+                            IsIt = true
+                        })),
+                    Parallel.ForEachAsync(server.Clients.Except(seekers), async (hider, _) =>
+                        await hider.Send(new TagPacket {
+                            UpdateType = TagPacket.TagUpdate.State,
+                            IsIt = true
+                        })
+                    )
+                );
+                consoleLogger.Info($"Started game with seekers {string.Join(", ", seekerNames)}");
+            });
+            return $"Starting game in {time} seconds with seekers {string.Join(", ", seekerNames)}";
+        }
+        default:
+            return optionUsage;
+    }
+});
+
+CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Select(x => x.Name))}");
 
 CommandHandler.RegisterCommand("flip", args => {
-    const string optionUsage = "Valid options: list, add <user id>, remove <user id>, set <true/false>, pov <both/self/others>";
+    const string optionUsage = "Valid options: \n\tlist\n\tadd <user id>\n\tremove <user id>\n\tset <true/false>\n\tpov <both/self/others>";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
@@ -221,7 +297,11 @@ Task.Run(() => {
     consoleLogger.Info("Run help command for valid commands.");
     while (true) {
         string? text = Console.ReadLine();
-        if (text != null) consoleLogger.Info(CommandHandler.GetResult(text));
+        if (text != null) {
+            foreach (string returnString in CommandHandler.GetResult(text).ReturnStrings) {
+                consoleLogger.Info(returnString);
+            }
+        }
     }
 });
 
