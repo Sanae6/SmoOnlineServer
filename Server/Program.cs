@@ -29,7 +29,9 @@ server.ClientJoined += (c, _) => {
 
 async Task ClientSyncShineBag(Client client) {
     try {
-        foreach (int shine in shineBag.Except((ConcurrentBag<int>) client.Metadata["shineSync"]).ToArray()) {
+        ConcurrentBag<int> clientBag = ((ConcurrentBag<int>)client.Metadata["shineSync"]);
+        foreach (int shine in shineBag.Except(clientBag).ToArray()) {
+            clientBag.Add(shine);
             await client.Send(new ShinePacket {
                 ShineId = shine
             });
