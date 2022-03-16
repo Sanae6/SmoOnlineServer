@@ -18,7 +18,6 @@ public class Server {
     public async Task Listen(CancellationToken? token = null) {
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-        serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, 1);
         serverSocket.Bind(new IPEndPoint(IPAddress.Parse(Settings.Instance.Server.Address), Settings.Instance.Server.Port));
         serverSocket.Listen();
 
@@ -28,7 +27,6 @@ public class Server {
             while (true) {
                 Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, 1);
 
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
