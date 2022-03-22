@@ -5,6 +5,11 @@ using System.Runtime.InteropServices;
 using Shared;
 using Shared.Packet;
 using Shared.Packet.Packets;
+using NetMQ.Sockets;
+using NetMQ;
+using MsgPack.Serialization;
+using MsgPack;
+using System.Text;
 
 namespace Server;
 
@@ -23,10 +28,12 @@ public class Server {
 
         Logger.Info($"Listening on {serverSocket.LocalEndPoint}");
 
+        Task.Run(() => HandleZMQ());
+
         try {
             while (true) {
                 Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
 
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
@@ -255,6 +262,17 @@ public class Server {
                     // if (header.Type is not PacketType.Cap and not PacketType.Player) client.Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + packet.Size)]);
+                    if (header.Type == PacketType.Player) {
+                        PlayerPacket pp = (PlayerPacket)packet;
+                        client.Xyz = ((Int32)pp.Position.X, (Int32)pp.Position.Y, (Int32)pp.Position.Z);
+                    } else if (header.Type == PacketType.Tag) {
+                        TagPacket tp = (TagPacket)packet;
+                        if (tp.UpdateType == TagPacket.TagUpdate.State) {
+                            client.IsIt = tp.IsIt;
+                        } else if (tp.UpdateType == TagPacket.TagUpdate.Time) {
+                            client.Time = (tp.Minutes, tp.Seconds);
+                        }
+                    }
                     if (PacketHandler?.Invoke(client, packet) is false) {
                         memory.Dispose();
                         continue;
@@ -290,5 +308,61 @@ public class Server {
     private static PacketHeader GetHeader(Span<byte> data) {
         //no need to error check, the client will disconnect when the packet is invalid :)
         return MemoryMarshal.Read<PacketHeader>(data);
+    }
+
+    public class ClientSerializable {
+        [MessagePackMember(0)]
+        public byte[] Guid { get; set; }
+        [MessagePackMember(1)]
+        public byte[] Name { get; set; }
+        [MessagePackMember(2)]
+        public bool IsIt {get; set; }
+        [MessagePackMember(3)]
+        public Int32 Seconds {get; set; }
+        [MessagePackMember(4)]
+        public (Int32, Int32, Int32) Xyz { get; set; }
+    }
+
+    private async Task ZMQServerAsync() {
+        // *:5555 for all bind
+        using (var responseSocket = new ResponseSocket("tcp://localhost:5555"))
+        {
+            var serializer = MessagePackSerializer.Get<List<ClientSerializable>>();
+            while (true) {
+                var (message, more) = await responseSocket.ReceiveFrameStringAsync();
+                switch (message) {
+                    case "WHOWHERE":
+                        Console.WriteLine("GOT WHO");
+                        List<ClientSerializable> clientsSerialized = new List<ClientSerializable>();
+                        foreach (Client c in Clients.FindAll(c => c.Connected)) {
+                            ClientSerializable cs = new ClientSerializable {
+                                Guid = Encoding.ASCII.GetBytes(c.Id.ToString("N")),
+                                Name = Encoding.ASCII.GetBytes(c.Name),
+                                IsIt = c.IsIt,
+                                Seconds = ((int)c.Time.Item1 * 60) + c.Time.Item2,
+                                Xyz = c.Xyz
+                            };
+                            clientsSerialized.Add(cs);
+                        }
+                        var stream = new MemoryStream();
+                        serializer.Pack(stream, clientsSerialized);
+                        var rawObject = Unpacking.UnpackObject(stream.GetBuffer());
+                        Console.WriteLine(rawObject.Value.AsList());
+                        Console.WriteLine("REP WHO");
+                        responseSocket.SendFrame(stream.GetBuffer());
+                        break;
+                    case "WHOSTATS":
+                        responseSocket.SendFrame("World");
+                        break;
+                }
+            }
+        }
+    }
+
+
+    private async void HandleZMQ() {
+        using (var runtime = new NetMQRuntime()) {
+            runtime.Run(ZMQServerAsync());
+        }
     }
 }

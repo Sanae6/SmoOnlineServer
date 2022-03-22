@@ -12,6 +12,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
+        <PackageReference Include="NetMQ" Version="4.0.1.8" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     </ItemGroup>
 

@@ -22,6 +22,10 @@ public class Client : IDisposable {
     public Server Server { get; init; }
     public Logger Logger { get; }
 
+    public (int, int, int) Xyz = (0,0,0);
+    public bool IsIt = false;
+    public (ushort, byte) Time = (0, 0);
+
     public Client(Socket socket) {
         Socket = socket;
         Logger = new Logger("Unknown User");
