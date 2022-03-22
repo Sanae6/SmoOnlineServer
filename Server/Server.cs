@@ -45,9 +45,11 @@ public class Server {
 
             try {
                 serverSocket.Shutdown(SocketShutdown.Both);
-            } catch {
+            }
+            catch {
                 // ignored
-            } finally {
+            }
+            finally {
                 serverSocket.Close();
             }
 
@@ -125,7 +127,7 @@ public class Server {
         try {
             while (true) {
                 memory = memoryPool.Rent(Constants.HeaderSize);
-                
+
                 async Task<bool> Read(Memory<byte> readMem, int readSize, int readOffset) {
                     readSize += readOffset;
                     while (readOffset < readSize) {
@@ -167,11 +169,12 @@ public class Server {
                     connect.Deserialize(memory.Memory.Span[packetRange]);
                     lock (Clients) {
                         client.Name = connect.ClientName;
-                        if (Clients.Count(x => x.Connected) == Constants.MaxClients) {
+                        if (Clients.Count(x => x.Connected) == Settings.Instance.Server.MaxPlayers) {
                             client.Logger.Error($"Turned away as server is at max clients");
                             memory.Dispose();
                             goto disconnect;
                         }
+
                         bool firstConn = false;
                         switch (connect.ConnectionType) {
                             case ConnectPacket.ConnectionTypes.FirstConnection: {
@@ -181,6 +184,7 @@ public class Server {
                                     newClient.Socket = client.Socket;
                                     client = newClient;
                                 }
+
                                 break;
                             }
                             case ConnectPacket.ConnectionTypes.Reconnecting: {
@@ -281,6 +285,7 @@ public class Server {
 
             memory?.Dispose();
         }
+
         disconnect:
         Logger.Info($"Client {socket.RemoteEndPoint} ({client.Name}/{client.Id}) disconnected from the server");
 
@@ -288,7 +293,10 @@ public class Server {
         client.Connected = false;
         try {
             client.Dispose();
-        } catch {/*lol*/}
+        }
+        catch { /*lol*/
+        }
+
         Task.Run(() => Broadcast(new DisconnectPacket(), client));
     }
 
