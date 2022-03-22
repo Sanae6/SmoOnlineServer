@@ -31,12 +31,6 @@ public class Server {
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
                 try {
-                    if (Clients.Count == Settings.Instance.Server.MaxPlayers) {
-                        Logger.Warn("Turned away client due to max clients");
-                        await socket.DisconnectAsync(false);
-                        continue;
-                    }
-
                     Task.Run(() => HandleSocket(socket));
                 }
                 catch (Exception e) {
@@ -173,10 +167,20 @@ public class Server {
                     connect.Deserialize(memory.Memory.Span[packetRange]);
                     lock (Clients) {
                         client.Name = connect.ClientName;
+                        if (Clients.Count(x => x.Connected) == Constants.MaxClients) {
+                            client.Logger.Error($"Turned away as server is at max clients");
+                            memory.Dispose();
+                            goto disconnect;
+                        }
                         bool firstConn = false;
                         switch (connect.ConnectionType) {
                             case ConnectPacket.ConnectionTypes.FirstConnection: {
                                 firstConn = true;
+                                if (FindExistingClient(header.Id) is { } newClient) {
+                                    if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
+                                    newClient.Socket = client.Socket;
+                                    client = newClient;
+                                }
                                 break;
                             }
                             case ConnectPacket.ConnectionTypes.Reconnecting: {
@@ -277,6 +281,7 @@ public class Server {
 
             memory?.Dispose();
         }
+        disconnect:
         Logger.Info($"Client {socket.RemoteEndPoint} ({client.Name}/{client.Id}) disconnected from the server");
 
         // Clients.Remove(client)

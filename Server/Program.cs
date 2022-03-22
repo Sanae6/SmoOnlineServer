@@ -26,7 +26,7 @@ server.ClientJoined += (c, _) => {
         }
     }
 
-    c.PacketTransformer += (sender, packet) => {
+    c.PacketTransformer += (_, packet) => {
         if (Settings.Instance.Scenario.MergeEnabled && packet is GamePacket gamePacket) {
             gamePacket.ScenarioNum = (byte?) c.Metadata["scenario"] ?? 0;
             return gamePacket;
@@ -71,22 +71,19 @@ float MarioSize(bool is2d) {
 }
 
 server.PacketHandler = (c, p) => {
-    {
-        switch (p) {
-            case GamePacket gamePacket: {
-                c.Metadata["scenario"] = gamePacket.ScenarioNum;
-                c.Metadata["2d"] = gamePacket.Is2d;
-                c.Metadata["lastGamePacket"] = gamePacket;
-                break;
-            }
-            case TagPacket tagPacket: {
-                if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
-                if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0) c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
-                break;
-            }
-        }
-    }
     switch (p) {
+        case GamePacket gamePacket: {
+            c.Logger.Info($"Got game packet {gamePacket.Stage}->{gamePacket.ScenarioNum}");
+            c.Metadata["scenario"] = gamePacket.ScenarioNum;
+            c.Metadata["2d"] = gamePacket.Is2d;
+            c.Metadata["lastGamePacket"] = gamePacket;
+            break;
+        }
+        case TagPacket tagPacket: {
+            if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
+            if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0) c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
+            break;
+        }
         case CostumePacket:
             ClientSyncShineBag(c);
             c.Metadata["loadedSave"] = true;

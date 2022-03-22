@@ -6,8 +6,10 @@ using Shared;
 using Shared.Packet;
 using Shared.Packet.Packets;
 
-// Guid ownId = new Guid(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-Guid baseOtherId = Guid.Parse("8ca3fcdd-2940-1000-b5f8-579301fcbfbb");
+// Guid startId = new Guid(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+// Guid baseOtherId = Guid.Parse("8ca3fcdd-2940-1000-b5f8-579301fcbfbb");
+Guid baseOtherId = Guid.Parse("d5feae62-2e71-1000-88fd-597ea147ae88");
 
 PacketType[] reboundPackets = {
     PacketType.Player,
@@ -20,10 +22,12 @@ PacketType[] reboundPackets = {
 };
 
 string lastCapture = "";
+List<TcpClient> clients = new List<TcpClient>();
 
 async Task S(string n, Guid otherId, Guid ownId) {
     Logger logger = new Logger($"Client ({n})");
     TcpClient client = new TcpClient(args[0], 1027);
+    clients.Add(client);
     NetworkStream stream = client.GetStream();
     logger.Info("Connected!");
     async Task<bool> Read(Memory<byte> readMem, int readSize, int readOffset) {
@@ -44,7 +48,7 @@ async Task S(string n, Guid otherId, Guid ownId) {
 
     {
         ConnectPacket connect = new ConnectPacket {
-            ConnectionType = ConnectPacket.ConnectionTypes.FirstConnection,
+            ConnectionType = ConnectPacket.ConnectionTypes.Reconnecting,
             ClientName = n
         };
         PacketHeader coolHeader = new PacketHeader {
@@ -68,13 +72,19 @@ async Task S(string n, Guid otherId, Guid ownId) {
             if (!await Read(owner.Memory, header.PacketSize, Constants.HeaderSize)) return;
         }
         PacketType type = header.Type;
-        if (header.Id != otherId) continue;
-        if (reboundPackets.All(x => x != type)) continue;
-        if (type == PacketType.Tag) {
-            TagPacket packet = new TagPacket();
-            packet.Deserialize(owner.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]);
-            packet.IsIt = true;
-            packet.Serialize(owner.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize)]);
+        if (header.Id != otherId || reboundPackets.All(x => x != type)) {
+            owner.Dispose();
+            continue;
+        }
+        if (type == PacketType.Player) {
+            Task.Run(async () => {
+                await Task.Delay(5000);
+                header.Id = ownId;
+                MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);
+                await stream.WriteAsync(owner.Memory[..(Constants.HeaderSize + header.PacketSize)]);
+                owner.Dispose();
+            });
+            continue;
         }
         header.Id = ownId;
         MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);
@@ -84,10 +94,19 @@ async Task S(string n, Guid otherId, Guid ownId) {
 }
 
 Guid temp = baseOtherId;
-IEnumerable<Task> stuff = Enumerable.Range(0, 1).Select(i => {
-    Guid newOwnId = Guid.NewGuid();
+IEnumerable<Task> stuff = Enumerable.Range(0, 3).Select(i => {
+    byte[] tmp = temp.ToByteArray();
+    tmp[0]++;
+    Guid newOwnId = new Guid(tmp);
     Task task = S($"Sussy {i}", temp, newOwnId);
     temp = newOwnId;
     return task;
 });
+Console.CancelKeyPress += (_, e) => {
+    e.Cancel = true;
+    foreach (TcpClient tcpClient in clients) {
+        tcpClient.Close();
+    }
+    Environment.Exit(0);
+};
 await Task.WhenAll(stuff.ToArray());
