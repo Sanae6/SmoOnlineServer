@@ -124,6 +124,26 @@ server.PacketHandler = (c, p) => {
     return true;
 };
 
+CommandHandler.RegisterCommand("send", args => {
+    const string optionUsage = "Usage: send <stage> <id> <scenario[0..255]> <player/*>";
+    if (args.Length < 4)
+        return optionUsage;
+
+    string stage = args[0];
+    string id = args[1];
+    if (!byte.TryParse(args[2], out byte scenario)) return $"Invalid scenario number {args[2]} (range: [0-255])";
+    Client[] players = args[3] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
+    Parallel.ForEachAsync(players, async (c,_) => {
+        await c.Send(new ChangeStagePacket {
+            Stage = stage,
+            Id = id,
+            Scenario = scenario,
+            SubScenarioType = 0
+        });
+    }).Wait();
+    return $"Sent players to {stage}:{scenario}";
+});
+
 CommandHandler.RegisterCommand("scenario", args => {
     const string optionUsage = "Valid options: merge <true/false>";
     if (args.Length < 1)
