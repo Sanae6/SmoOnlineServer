@@ -8,7 +8,6 @@ public struct GamePacket : IPacket {
     private const int StageSize = 0x30;
     public bool Is2d;
     public byte ScenarioNum;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = StageSize)]
     public string Stage = "";
 
     public GamePacket() {

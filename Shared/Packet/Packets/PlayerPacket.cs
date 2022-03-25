@@ -12,7 +12,6 @@ public struct PlayerPacket : IPacket {
     public Vector3 Position;
     public Quaternion Rotation;
 
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
     public float[] AnimationBlendWeights = Array.Empty<float>();
 
     public ushort Act;

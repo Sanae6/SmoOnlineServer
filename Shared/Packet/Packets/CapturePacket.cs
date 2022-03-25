@@ -5,7 +5,6 @@ namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Capture)]
 public struct CapturePacket : IPacket {
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = Constants.CostumeNameSize)]
     public string ModelName;
 
     public short Size => Constants.CostumeNameSize;

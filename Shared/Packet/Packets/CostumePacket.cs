@@ -5,10 +5,7 @@ namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Costume)]
 public struct CostumePacket : IPacket {
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = Constants.CostumeNameSize)]
     public string BodyName;
-
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = Constants.CostumeNameSize)]
     public string CapName;
 
     public short Size => Constants.CostumeNameSize * 2;
