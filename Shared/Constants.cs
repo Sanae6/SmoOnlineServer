@@ -21,4 +21,22 @@ public static class Constants {
         .ToDictionary(type => type.GetCustomAttribute<PacketAttribute>()!.Type, type => type);
 
     public static int HeaderSize { get; } = Marshal.SizeOf<PacketHeader>();
+
+    public static readonly Dictionary<string, string> MapNames = new Dictionary<string, string>() {
+        {"Cap", "CapWorldHomeStage"},
+        {"Cascade", "WaterfallWorldHomeStage"},
+        {"Sand", "SandWorldHomeStage"},
+        {"Lake", "LakeWorldHomeStage"},
+        {"Wooded", "ForestWorldHomeStage"},
+        {"Cloud", "CloudWorldHomeStage"},
+        {"Lost", "ClashWorldHomeStage"},
+        {"Metro", "CityWorldHomeStage"},
+        {"Sea", "SeaWorldHomeStage"},
+        {"Snow", "SnowWorldHomeStage"},
+        {"Lunch", "LavaWorldHomeStage"},
+        {"Ruined", "BossRaidWorldHomeStage"},
+        {"Bowser", "SkyWorldHomeStage"},
+        {"Moon", "MoonWorldHomeStage"},
+        {"Mush", "PeachWorldHomeStage"}
+    };
 }

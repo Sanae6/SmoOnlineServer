@@ -9,7 +9,7 @@ public struct ChangeStagePacket : IPacket {
     private const int StageSize = 0x30;
     public string Stage = "";
     public string Id = "";
-    public byte Scenario = 0;
+    public sbyte Scenario = 0;
     public byte SubScenarioType = 0;
     public ChangeStagePacket() { }
     public short Size => 0x44;

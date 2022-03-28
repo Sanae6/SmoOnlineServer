@@ -131,7 +131,12 @@ CommandHandler.RegisterCommand("send", args => {
 
     string stage = args[0];
     string id = args[1];
-    if (!byte.TryParse(args[2], out byte scenario)) return $"Invalid scenario number {args[2]} (range: [0-255])";
+
+    if (Constants.MapNames.TryGetValue(stage, out string? mapName)) {
+        stage = mapName;
+    }
+
+    if (!sbyte.TryParse(args[2], out sbyte scenario)) return $"Invalid scenario number {args[2]} (range: [-128 to 127])";
     Client[] players = args[3] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
     Parallel.ForEachAsync(players, async (c,_) => {
         await c.Send(new ChangeStagePacket {
@@ -142,6 +147,31 @@ CommandHandler.RegisterCommand("send", args => {
         });
     }).Wait();
     return $"Sent players to {stage}:{scenario}";
+});
+
+CommandHandler.RegisterCommand("sendall", args => {
+    const string optionUsage = "Usage: sendall <stage>";
+    if (args.Length < 1)
+        return optionUsage;
+
+    string stage = args[0];
+
+    if (Constants.MapNames.TryGetValue(stage, out string? mapName)) {
+        stage = mapName;
+    }
+
+    Client[] players = server.Clients.Where(c => c.Connected).ToArray();
+
+    Parallel.ForEachAsync(players, async (c,_) => {
+        await c.Send(new ChangeStagePacket {
+            Stage = stage,
+            Id = "",
+            Scenario = -1,
+            SubScenarioType = 0
+        });
+    }).Wait();
+
+    return $"Sent players to {stage}:{-1}";
 });
 
 CommandHandler.RegisterCommand("scenario", args => {
