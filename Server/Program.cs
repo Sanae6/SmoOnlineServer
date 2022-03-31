@@ -260,15 +260,15 @@ CommandHandler.RegisterCommand("tag", args => {
                 await Task.Delay(realTime);
                 await Task.WhenAll(
                     Parallel.ForEachAsync(seekers, async (seeker, _) =>
-                        await seeker.Send(new TagPacket {
+                        await server.Broadcast(new TagPacket {
                             UpdateType = TagPacket.TagUpdate.State,
                             IsIt = true
-                        })),
+                        }, seeker)),
                     Parallel.ForEachAsync(server.Clients.Except(seekers), async (hider, _) =>
-                        await hider.Send(new TagPacket {
+                        await server.Broadcast(new TagPacket {
                             UpdateType = TagPacket.TagUpdate.State,
                             IsIt = false
-                        })
+                        }, hider)
                     )
                 );
                 consoleLogger.Info($"Started game with seekers {string.Join(", ", seekerNames)}");
