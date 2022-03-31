@@ -310,7 +310,7 @@ CommandHandler.RegisterCommand("flip", args => {
 });
 
 CommandHandler.RegisterCommand("shine", args => {
-    const string optionUsage = "Valid options: list, clear, sync";
+    const string optionUsage = "Valid options: list, clear, sync, send";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
@@ -324,6 +324,18 @@ CommandHandler.RegisterCommand("shine", args => {
         case "sync" when args.Length == 1:
             SyncShineBag();
             return "Synced shine bag automatically";
+        case "send" when args.Length >= 3:
+            if(int.TryParse(args[1], out int id)) {
+                Client[] players = args[2] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
+                Parallel.ForEachAsync(players, async (c,_) => {
+                    await c.Send(new ShinePacket {
+                        ShineId = id
+                    });
+                }).Wait();
+                return $"Sent Shine Num {id}";
+            }
+
+            return optionUsage;
         default:
             return optionUsage;
     }
