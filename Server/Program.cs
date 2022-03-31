@@ -82,10 +82,10 @@ server.PacketHandler = (c, p) => {
             switch (gamePacket.Stage) {
                 case "CapWorldHomeStage" when gamePacket.ScenarioNum == 0:
                     c.Metadata["speedrun"] = true;
-                    ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>());
-                    clientBag.Clear();
+                    ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
+                    shineBag.Clear();
                     break;
-                case "WaterfallWorldHomeStage" when gamePacket.ScenarioNum >= 0:
+                case "WaterfallWorldHomeStage":
                     bool wasSpeedrun = (bool) c.Metadata["speedrun"]!;
                     c.Metadata["speedrun"] = false;
                     if (wasSpeedrun)
