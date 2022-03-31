@@ -17,6 +17,7 @@ server.ClientJoined += (c, _) => {
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = 0;
     c.Metadata["2d"] = false;
+    c.Metadata["speedrun"] = false;
     foreach (Client client in server.Clients.Where(client => client.Metadata.ContainsKey("lastGamePacket")).ToArray()) {
         try {
             Task.WaitAll(c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client));
@@ -28,7 +29,7 @@ server.ClientJoined += (c, _) => {
 
     c.PacketTransformer += (_, packet) => {
         if (Settings.Instance.Scenario.MergeEnabled && packet is GamePacket gamePacket) {
-            gamePacket.ScenarioNum = (byte?) c.Metadata["scenario"] ?? 0;
+            gamePacket.ScenarioNum = (byte?) c.Metadata["scenario"] ?? 200;
             return gamePacket;
         }
 
@@ -38,6 +39,7 @@ server.ClientJoined += (c, _) => {
 
 async Task ClientSyncShineBag(Client client) {
     try {
+        if ((bool?) client.Metadata["speedrun"] ?? false) return;
         ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (client.Metadata["shineSync"] ??= new ConcurrentBag<int>());
         foreach (int shine in shineBag.Except(clientBag).ToArray()) {
             clientBag.Add(shine);
@@ -77,6 +79,17 @@ server.PacketHandler = (c, p) => {
             c.Metadata["scenario"] = gamePacket.ScenarioNum;
             c.Metadata["2d"] = gamePacket.Is2d;
             c.Metadata["lastGamePacket"] = gamePacket;
+            switch (gamePacket.Stage) {
+                case "CapWorldHomeStage" when gamePacket.ScenarioNum == 0:
+                    c.Metadata["speedrun"] = true;
+                    ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>());
+                    clientBag.Clear();
+                    break;
+                case "WaterfallWorldHomeStage" when gamePacket.ScenarioNum > 0:
+                    c.Metadata["speedrun"] = false;
+                    ClientSyncShineBag(c);
+                    break;
+            }
             break;
         }
         case TagPacket tagPacket: {
@@ -138,7 +151,7 @@ CommandHandler.RegisterCommand("send", args => {
 
     if (!sbyte.TryParse(args[2], out sbyte scenario)) return $"Invalid scenario number {args[2]} (range: [-128 to 127])";
     Client[] players = args[3] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
-    Parallel.ForEachAsync(players, async (c,_) => {
+    Parallel.ForEachAsync(players, async (c, _) => {
         await c.Send(new ChangeStagePacket {
             Stage = stage,
             Id = id,
@@ -162,7 +175,7 @@ CommandHandler.RegisterCommand("sendall", args => {
 
     Client[] players = server.Clients.Where(c => c.Connected).ToArray();
 
-    Parallel.ForEachAsync(players, async (c,_) => {
+    Parallel.ForEachAsync(players, async (c, _) => {
         await c.Send(new ChangeStagePacket {
             Stage = stage,
             Id = "",
@@ -175,7 +188,7 @@ CommandHandler.RegisterCommand("sendall", args => {
 });
 
 CommandHandler.RegisterCommand("scenario", args => {
-    const string optionUsage = "Valid options: merge <true/false>";
+    const string optionUsage = "Valid options: merge [true/false]";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
@@ -187,6 +200,9 @@ CommandHandler.RegisterCommand("scenario", args => {
             }
 
             return optionUsage;
+        }
+        case "merge" when args.Length == 1: {
+            return $"Scenario merging is {(Settings.Instance.Scenario.MergeEnabled)}";
         }
         default:
             return optionUsage;
