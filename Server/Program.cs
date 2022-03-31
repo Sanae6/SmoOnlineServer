@@ -85,9 +85,14 @@ server.PacketHandler = (c, p) => {
                     ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>());
                     clientBag.Clear();
                     break;
-                case "WaterfallWorldHomeStage" when gamePacket.ScenarioNum > 0:
+                case "WaterfallWorldHomeStage" when gamePacket.ScenarioNum >= 0:
+                    bool wasSpeedrun = (bool) c.Metadata["speedrun"]!;
                     c.Metadata["speedrun"] = false;
-                    ClientSyncShineBag(c);
+                    if (wasSpeedrun)
+                        Task.Run(async () => {
+                            await Task.Delay(15000);
+                            await ClientSyncShineBag(c);
+                        });
                     break;
             }
             break;
@@ -341,9 +346,9 @@ CommandHandler.RegisterCommand("shine", args => {
             SyncShineBag();
             return "Synced shine bag automatically";
         case "send" when args.Length >= 3:
-            if(int.TryParse(args[1], out int id)) {
+            if (int.TryParse(args[1], out int id)) {
                 Client[] players = args[2] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
-                Parallel.ForEachAsync(players, async (c,_) => {
+                Parallel.ForEachAsync(players, async (c, _) => {
                     await c.Send(new ShinePacket {
                         ShineId = id
                     });
