@@ -78,7 +78,7 @@ async Task S(string n, Guid otherId, Guid ownId) {
         }
         if (type == PacketType.Player) {
             Task.Run(async () => {
-                await Task.Delay(2000);
+                await Task.Delay(1000);
                 header.Id = ownId;
                 MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);
                 await stream.WriteAsync(owner.Memory[..(Constants.HeaderSize + header.PacketSize)]);
@@ -94,7 +94,7 @@ async Task S(string n, Guid otherId, Guid ownId) {
 }
 
 Guid temp = baseOtherId;
-IEnumerable<Task> stuff = Enumerable.Range(0, 3).Select(i => {
+IEnumerable<Task> stuff = Enumerable.Range(0, 7).Select(i => {
     byte[] tmp = temp.ToByteArray();
     tmp[0]++;
     Guid newOwnId = new Guid(tmp);
