@@ -20,7 +20,7 @@ server.ClientJoined += (c, _) => {
     c.Metadata["speedrun"] = false;
     foreach (Client client in server.Clients.Where(client => client.Metadata.ContainsKey("lastGamePacket")).ToArray()) {
         try {
-            Task.WaitAll(c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client));
+            c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client).Wait();
         }
         catch {
             // lol who gives a fuck
