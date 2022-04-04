@@ -84,12 +84,14 @@ server.PacketHandler = (c, p) => {
                     c.Metadata["speedrun"] = true;
                     ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
                     shineBag.Clear();
+                    c.Logger.Info("Entered Cap on scenario 0, enabling speedrun flag");
                     break;
                 case "WaterfallWorldHomeStage":
                     bool wasSpeedrun = (bool) c.Metadata["speedrun"]!;
                     c.Metadata["speedrun"] = false;
                     if (wasSpeedrun)
                         Task.Run(async () => {
+                            c.Logger.Info("Entered Cascade with speedrun mode on");
                             await Task.Delay(15000);
                             await ClientSyncShineBag(c);
                         });
@@ -207,7 +209,7 @@ CommandHandler.RegisterCommand("scenario", args => {
             return optionUsage;
         }
         case "merge" when args.Length == 1: {
-            return $"Scenario merging is {(Settings.Instance.Scenario.MergeEnabled)}";
+            return $"Scenario merging is {Settings.Instance.Scenario.MergeEnabled}";
         }
         default:
             return optionUsage;

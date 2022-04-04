@@ -17,7 +17,7 @@ public struct ConnectPacket : IPacket {
         Encoding.UTF8.GetBytes(ClientName).CopyTo(data[4..(4 + Constants.CostumeNameSize)]);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         ConnectionType = MemoryMarshal.Read<ConnectionTypes>(data);
         ClientName = Encoding.UTF8.GetString(data[4..(4 + Constants.CostumeNameSize)]).TrimNullTerm();
     }

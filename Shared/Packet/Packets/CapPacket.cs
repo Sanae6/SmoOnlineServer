@@ -21,7 +21,7 @@ public struct CapPacket : IPacket {
         Encoding.UTF8.GetBytes(CapAnim).CopyTo(data[32..(32 + NameSize)]);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         Position = MemoryMarshal.Read<Vector3>(data);
         Rotation = MemoryMarshal.Read<Quaternion>(data[12..]);
         CapOut = MemoryMarshal.Read<bool>(data[28..]);

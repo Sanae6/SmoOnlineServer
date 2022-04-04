@@ -6,5 +6,5 @@ public struct DisconnectPacket : IPacket {
     public short Size => 0;
     public void Serialize(Span<byte> data) { }
 
-    public void Deserialize(Span<byte> data) { }
+    public void Deserialize(ReadOnlySpan<byte> data) { }
 }

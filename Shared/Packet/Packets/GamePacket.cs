@@ -22,7 +22,7 @@ public struct GamePacket : IPacket {
         Encoding.UTF8.GetBytes(Stage).CopyTo(data[2..(2 + StageSize)]);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         Is2d = MemoryMarshal.Read<bool>(data);
         ScenarioNum = MemoryMarshal.Read<byte>(data[1..]);
         Stage = Encoding.UTF8.GetString(data[2..(2 + StageSize)]).TrimEnd('\0');

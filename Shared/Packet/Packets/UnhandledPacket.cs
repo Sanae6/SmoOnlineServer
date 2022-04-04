@@ -14,7 +14,7 @@ public struct UnhandledPacket : IPacket {
         Data.CopyTo(data);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         Data = data.ToArray();
     }
 
