@@ -180,7 +180,10 @@ public class Server {
                             case ConnectPacket.ConnectionTypes.FirstConnection: {
                                 firstConn = true;
                                 if (FindExistingClient(header.Id) is { } newClient) {
-                                    if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
+                                    if (newClient.Connected) {
+                                        newClient.Logger.Info($"Disconnecting already connected client {newClient.Socket?.RemoteEndPoint} for {client.Socket?.RemoteEndPoint}");
+                                        newClient.Dispose();
+                                    }
                                     newClient.Socket = client.Socket;
                                     client = newClient;
                                 }
@@ -190,7 +193,10 @@ public class Server {
                             case ConnectPacket.ConnectionTypes.Reconnecting: {
                                 client.Id = header.Id;
                                 if (FindExistingClient(header.Id) is { } newClient) {
-                                    if (newClient.Connected) throw new Exception($"Tried to join as already connected user {header.Id}");
+                                    if (newClient.Connected) {
+                                        newClient.Logger.Info($"Disconnecting already connected client {newClient.Socket?.RemoteEndPoint} for {client.Socket?.RemoteEndPoint}");
+                                        newClient.Dispose();
+                                    }
                                     newClient.Socket = client.Socket;
                                     client = newClient;
                                 } else {

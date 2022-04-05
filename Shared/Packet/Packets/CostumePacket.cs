@@ -15,7 +15,7 @@ public struct CostumePacket : IPacket {
         Encoding.UTF8.GetBytes(CapName).CopyTo(data[Constants.CostumeNameSize..]);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         BodyName = Encoding.UTF8.GetString(data[..Constants.CostumeNameSize]).TrimNullTerm();
         CapName = Encoding.UTF8.GetString(data[Constants.CostumeNameSize..]).TrimNullTerm();
     }

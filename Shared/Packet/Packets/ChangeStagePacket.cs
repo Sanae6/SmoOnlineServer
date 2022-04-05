@@ -19,7 +19,7 @@ public struct ChangeStagePacket : IPacket {
         MemoryMarshal.Write(data[(IdSize + StageSize)..(IdSize + StageSize + 1)], ref Scenario);
         MemoryMarshal.Write(data[(IdSize + StageSize + 1)..(IdSize + StageSize + 2)], ref SubScenarioType);
     }
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         throw new NotImplementedException("This packet should not be sent by the client.");
     }
 }

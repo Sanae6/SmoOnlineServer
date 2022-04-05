@@ -35,7 +35,7 @@ public struct PlayerPacket : IPacket {
         MemoryMarshal.Write(data[offset++..++offset], ref SubAct);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         int offset = 0;
         Position = MemoryMarshal.Read<Vector3>(data[..(offset += Marshal.SizeOf<Vector3>())]);
         Rotation = MemoryMarshal.Read<Quaternion>(data[offset..(offset += Marshal.SizeOf<Quaternion>())]);

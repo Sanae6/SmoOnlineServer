@@ -12,7 +12,7 @@ public struct ShinePacket : IPacket {
         MemoryMarshal.Write(data, ref ShineId);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         ShineId = MemoryMarshal.Read<int>(data);
     }
 }

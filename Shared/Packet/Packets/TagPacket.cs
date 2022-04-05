@@ -18,7 +18,7 @@ public struct TagPacket : IPacket {
         MemoryMarshal.Write(data[4..], ref Minutes);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         UpdateType = MemoryMarshal.Read<TagUpdate>(data);
         IsIt = MemoryMarshal.Read<bool>(data[1..]);
         Seconds = MemoryMarshal.Read<byte>(data[2..]);

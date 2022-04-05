@@ -12,7 +12,7 @@ public struct CapturePacket : IPacket {
         Encoding.UTF8.GetBytes(ModelName).CopyTo(data[..Constants.CostumeNameSize]);
     }
 
-    public void Deserialize(Span<byte> data) {
+    public void Deserialize(ReadOnlySpan<byte> data) {
         ModelName = Encoding.UTF8.GetString(data[..Constants.CostumeNameSize]).TrimNullTerm();
     }
 
