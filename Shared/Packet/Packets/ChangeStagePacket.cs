@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Shared.Packet.Packets;
@@ -20,6 +21,9 @@ public struct ChangeStagePacket : IPacket {
         MemoryMarshal.Write(data[(IdSize + StageSize + 1)..(IdSize + StageSize + 2)], ref SubScenarioType);
     }
     public void Deserialize(ReadOnlySpan<byte> data) {
-        throw new NotImplementedException("This packet should not be sent by the client.");
+        Stage = Encoding.UTF8.GetString(data[..StageSize]).TrimNullTerm();
+        Id = Encoding.UTF8.GetString(data[StageSize..(IdSize + StageSize)]).TrimNullTerm();
+        Scenario = MemoryMarshal.Read<sbyte>(data[(IdSize + StageSize)..(IdSize + StageSize + 1)]);
+        SubScenarioType = MemoryMarshal.Read<byte>(data[(IdSize + StageSize + 1)..(IdSize + StageSize + 2)]);
     }
 }
