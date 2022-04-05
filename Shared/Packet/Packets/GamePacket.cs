@@ -18,7 +18,7 @@ public struct GamePacket : IPacket {
     public short Size => 0x32;
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data[..0], ref Is2d);
-        MemoryMarshal.Write(data[1..1], ref ScenarioNum);
+        MemoryMarshal.Write(data[1..], ref ScenarioNum);
         Encoding.UTF8.GetBytes(Stage).CopyTo(data[2..(2 + StageSize)]);
     }
 
