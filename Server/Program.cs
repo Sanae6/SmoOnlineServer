@@ -150,8 +150,12 @@ CommandHandler.RegisterCommand("send", args => {
     string stage = args[0];
     string id = args[1];
 
-    if (Constants.MapNames.TryGetValue(stage, out string? mapName)) {
+    if (Constants.MapNames.TryGetValue(stage.ToLower(), out string? mapName)) {
         stage = mapName;
+    }
+
+    if(!stage.Contains("Stage") && !stage.Contains("Zone")) {
+        return "Invalid Stage Name!";
     }
 
     if (!sbyte.TryParse(args[2], out sbyte scenario)) return $"Invalid scenario number {args[2]} (range: [-128 to 127])";
@@ -174,8 +178,12 @@ CommandHandler.RegisterCommand("sendall", args => {
 
     string stage = args[0];
 
-    if (Constants.MapNames.TryGetValue(stage, out string? mapName)) {
+    if (Constants.MapNames.TryGetValue(stage.ToLower(), out string? mapName)) {
         stage = mapName;
+    }
+
+    if(!stage.Contains("Stage") && !stage.Contains("Zone")) {
+        return "Invalid Stage Name!";
     }
 
     Client[] players = server.Clients.Where(c => c.Connected).ToArray();
