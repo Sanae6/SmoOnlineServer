@@ -34,11 +34,9 @@ public class Client : IDisposable {
 
     public delegate IPacket PacketTransformerDel(Client? sender, IPacket packet);
 
-    public event PacketTransformerDel? PacketTransformer;
 
     public async Task Send<T>(T packet, Client? sender = null) where T : struct, IPacket {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
-        packet = (T) (PacketTransformer?.Invoke(sender, packet) ?? packet);
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Id,
             Type = Constants.PacketMap[typeof(T)].Type,
@@ -56,13 +54,6 @@ public class Client : IDisposable {
         }
 
         int packetSize = MemoryMarshal.Read<short>(data.Span[18..]);
-        // if (PacketTransformer != null) {
-        //     PacketType type = MemoryMarshal.Read<PacketType>(data.Span[16..]);
-        //     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[type])!;
-        //     packet.Deserialize(data.Span);
-        //     packet = PacketTransformer?.Invoke(sender, packet) ?? packet;
-        //     packet.Serialize(data.Span);
-        // }
         await Socket!.SendAsync(data[..(Constants.HeaderSize + packetSize)], SocketFlags.None);
     }
 
