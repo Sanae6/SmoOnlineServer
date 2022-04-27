@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Shared;
@@ -57,8 +58,9 @@ public class Client : IDisposable {
             return;
         }
 
-        if (header.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {header.Type} + ({(short)header.Type}), {partTime} ({(short?) partTime})");
+        if (header.Type is not PacketType.Cap and not PacketType.Player) {
+            Logger.Info($"About to receive {header.Type} + ({(short)header.Type}), {partTime} ({(short?) partTime}) {new StackTrace().ToString()}");
+        }
 
         await Socket!.SendAsync(data[..(Constants.HeaderSize + header.PacketSize)], SocketFlags.None);
     }
