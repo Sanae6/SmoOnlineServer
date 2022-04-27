@@ -67,7 +67,7 @@ public class Server {
     // broadcast packets to all clients
     public delegate void PacketReplacer<in T>(Client from, Client to, T value); // replacer must send
 
-    public async Task BroadcastReplace<T>(T packet, Client sender, PacketReplacer<T> packetReplacer) where T : struct, IPacket {
+    public void BroadcastReplace<T>(T packet, Client sender, PacketReplacer<T> packetReplacer) where T : struct, IPacket {
         foreach (Client client in Clients.Where(client => sender.Id != client.Id)) packetReplacer(sender, client, packet);
     }
 

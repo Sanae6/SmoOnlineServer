@@ -38,6 +38,8 @@ public class Client : IDisposable {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
 
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
+        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
+            Logger.Info($"Pre-header {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Id,
             Type = packetAttribute.Type,
@@ -53,16 +55,12 @@ public class Client : IDisposable {
         memory.Dispose();
     }
 
-    public async Task Send(Memory<byte> data, Client? sender, PacketType? partTime = null) {
+    public async Task Send(Memory<byte> data, Client? sender) {
         PacketHeader header = new PacketHeader();
         header.Deserialize(data.Span);
         if (!Connected && header.Type is not PacketType.Connect) {
             Server.Logger.Error($"Didn't send {header.Type} to {Id} because they weren't connected yet");
             return;
-        }
-
-        if (header.Type is not PacketType.Cap and not PacketType.Player) {
-            Logger.Info($"About to receive {header.Type} + ({(short)header.Type}), {partTime} ({(short?) partTime}) {new StackTrace().ToString()}");
         }
 
         await Socket!.SendAsync(data[..(Constants.HeaderSize + header.PacketSize)], SocketFlags.None);
