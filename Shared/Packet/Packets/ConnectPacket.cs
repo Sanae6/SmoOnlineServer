@@ -21,7 +21,7 @@ public struct ConnectPacket : IPacket {
 
     public void Deserialize(ReadOnlySpan<byte> data) {
         ConnectionType = MemoryMarshal.Read<ConnectionTypes>(data);
-        MaxPlayers = MemoryMarshal.Read<ConnectionTypes>(data[4..]);
+        MaxPlayers = MemoryMarshal.Read<ushort>(data[4..]);
         ClientName = Encoding.UTF8.GetString(data[6..(6 + Constants.CostumeNameSize)]).TrimNullTerm();
     }
 
