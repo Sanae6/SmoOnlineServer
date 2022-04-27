@@ -290,7 +290,7 @@ CommandHandler.RegisterCommand("tag", args => {
     }
 });
 
-CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Select(x => $"{x.Name} ({x.Id})"))}");
+CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Where(x => x.Connected).Select(x => $"{x.Name} ({x.Id})"))}");
 
 CommandHandler.RegisterCommand("flip", args => {
     const string optionUsage = "Valid options: \n\tlist\n\tadd <user id>\n\tremove <user id>\n\tset <true/false>\n\tpov <both/self/others>";
