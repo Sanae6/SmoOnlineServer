@@ -52,7 +52,8 @@ public class Client : IDisposable {
     }
 
     public async Task Send(Memory<byte> data, Client? sender) {
-        PacketHeader header = MemoryMarshal.Read<PacketHeader>(data.Span);
+        PacketHeader header = new PacketHeader();
+        header.Deserialize(data.Span);
         if (!Connected && header.Type is not PacketType.Connect) {
             Server.Logger.Error($"Didn't send {header.Type} to {Id} because they weren't connected yet");
             return;

@@ -60,7 +60,7 @@ public class Server {
     public static void FillPacket<T>(PacketHeader header, T packet, Memory<byte> memory) where T : struct, IPacket {
         Span<byte> data = memory.Span;
 
-        MemoryMarshal.Write(data, ref header);
+        header.Serialize(data[..Constants.HeaderSize]);
         packet.Serialize(data[Constants.HeaderSize..]);
     }
 
@@ -234,7 +234,7 @@ public class Server {
                             Type = PacketType.Connect,
                             PacketSize = connect.Size
                         };
-                        MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
+                        connectHeader.Serialize(tempBuffer.Memory.Span[..Constants.HeaderSize]);
                         ConnectPacket connectPacket = new ConnectPacket {
                             ConnectionType = ConnectPacket.ConnectionTypes.FirstConnection, // doesn't matter what it is
                             MaxPlayers = Settings.Instance.Server.MaxPlayers,
@@ -245,7 +245,7 @@ public class Server {
                         if (other.CurrentCostume.HasValue) {
                             connectHeader.Type = PacketType.Costume;
                             connectHeader.PacketSize = other.CurrentCostume.Value.Size;
-                            MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
+                            connectHeader.Serialize(tempBuffer.Memory.Span[..Constants.HeaderSize]);
                             other.CurrentCostume.Value.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + connectHeader.PacketSize)]);
                             await client.Send(tempBuffer.Memory[..(Constants.HeaderSize + connectHeader.PacketSize)], null);
                         }
@@ -309,6 +309,8 @@ public class Server {
 
     private static PacketHeader GetHeader(Span<byte> data) {
         //no need to error check, the client will disconnect when the packet is invalid :)
-        return MemoryMarshal.Read<PacketHeader>(data);
+        PacketHeader header = new PacketHeader();
+        header.Deserialize(data[..Constants.HeaderSize]);
+        return header;
     }
 }
