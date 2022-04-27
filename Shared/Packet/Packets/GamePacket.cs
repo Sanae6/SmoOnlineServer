@@ -12,9 +12,9 @@ public struct GamePacket : IPacket {
 
     public GamePacket() { }
 
-    public short Size => 0x3A;
+    public short Size => 0x3C;
     public void Serialize(Span<byte> data) {
-        MemoryMarshal.Write(data[..0], ref Is2d);
+        MemoryMarshal.Write(data, ref Is2d);
         MemoryMarshal.Write(data[1..], ref ScenarioNum);
         Encoding.UTF8.GetBytes(Stage).CopyTo(data[2..(2 + StageSize)]);
     }

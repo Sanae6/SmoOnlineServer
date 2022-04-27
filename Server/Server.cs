@@ -59,7 +59,7 @@ public class Server {
 
     public static void FillPacket<T>(PacketHeader header, T packet, Memory<byte> memory) where T : struct, IPacket {
         Span<byte> data = memory.Span;
-
+        
         header.Serialize(data[..Constants.HeaderSize]);
         packet.Serialize(data[Constants.HeaderSize..]);
     }
