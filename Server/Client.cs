@@ -48,10 +48,14 @@ public class Client : IDisposable {
     }
 
     public async Task Send(Memory<byte> data, Client? sender) {
-        if (!Connected) {
-            // Server.Logger.Info($"Didn't send {MemoryMarshal.Read<PacketType>(data.Span[16..])} to {Id} because they weren't connected yet");
+        PacketType packetType = MemoryMarshal.Read<PacketType>(data.Span[16..]);
+        if (!Connected && packetType is not PacketType.Connect) {
+            Server.Logger.Error($"Didn't send {packetType} to {Id} because they weren't connected yet");
             return;
         }
+
+        if (packetType is not PacketType.Cap and not PacketType.Player)
+            Logger.Info($"About to receive {packetType}");
 
         int packetSize = MemoryMarshal.Read<short>(data.Span[18..]);
         await Socket!.SendAsync(data[..(Constants.HeaderSize + packetSize)], SocketFlags.None);
