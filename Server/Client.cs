@@ -40,12 +40,17 @@ public class Client : IDisposable {
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
         if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
             Logger.Info($"Pre-header {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
-        PacketHeader header = new PacketHeader {
-            Id = sender?.Id ?? Id,
-            Type = packetAttribute.Type,
-            PacketSize = packet.Size
-        };
-        Server.FillPacket(header, packet, memory.Memory);
+        try {
+            PacketHeader header = new PacketHeader {
+                Id = sender?.Id ?? Id,
+                Type = packetAttribute.Type,
+                PacketSize = packet.Size
+            };
+            Server.FillPacket(header, packet, memory.Memory);
+        }
+        catch (Exception e) {
+            Logger.Error($"I will lose my shit {e}");
+        }
 
         if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
             Logger.Info($"About to receive {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");

@@ -14,7 +14,7 @@ Logger consoleLogger = new Logger("Console");
 server.ClientJoined += (c, _) => {
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
-    c.Metadata["scenario"] = 0;
+    c.Metadata["scenario"] = (byte?)0;
     c.Metadata["2d"] = false;
     c.Metadata["speedrun"] = false;
     foreach (Client client in server.Clients.Where(client => client.Metadata.ContainsKey("lastGamePacket")).ToArray()) {
