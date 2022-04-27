@@ -37,9 +37,13 @@ public class Client : IDisposable {
 
     public async Task Send<T>(T packet, Client? sender = null) where T : struct, IPacket {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
+
+        PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
+        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
+            Logger.Info($"About to receive {packetAttribute.Type}");
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Id,
-            Type = Constants.PacketMap[typeof(T)].Type,
+            Type = packetAttribute.Type,
             PacketSize = packet.Size
         };
         Server.FillPacket(header, packet, memory.Memory);
