@@ -40,7 +40,7 @@ public class Client : IDisposable {
 
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
         if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {packetAttribute.Type} -");
+            Logger.Info($"About to receive {packetAttribute.Type} - {typeof(T)}");
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Id,
             Type = packetAttribute.Type,
