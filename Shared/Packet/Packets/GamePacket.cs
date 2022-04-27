@@ -5,17 +5,14 @@ namespace Shared.Packet.Packets;
 
 [Packet(PacketType.Game)]
 public struct GamePacket : IPacket {
-    private const int StageSize = 0x30;
-    public bool Is2d;
-    public byte ScenarioNum;
+    private const int StageSize = 0x38;
+    public bool Is2d = false;
+    public byte ScenarioNum = 0;
     public string Stage = "";
 
-    public GamePacket() {
-        Is2d = false;
-        ScenarioNum = 0;
-    }
+    public GamePacket() { }
 
-    public short Size => 0x32;
+    public short Size => 0x3A;
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data[..0], ref Is2d);
         MemoryMarshal.Write(data[1..], ref ScenarioNum);

@@ -88,7 +88,8 @@ server.PacketHandler = (c, p) => {
                     break;
             }
             server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
-                gp.ScenarioNum = (byte?) from.Metadata["scenario"] ?? 200;
+                gp.ScenarioNum = (byte?) to.Metadata["scenario"] ?? 200;
+                from.Logger.Warn($"to {to.Logger.Name}, {to.Metadata["scenario"]}-{gp.ScenarioNum}");
 
                 to.Send(gp, from);
             });
