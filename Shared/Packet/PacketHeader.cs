@@ -21,6 +21,6 @@ public struct PacketHeader : IPacket {
     public void Deserialize(ReadOnlySpan<byte> data) {
         Id = MemoryMarshal.Read<Guid>(data);
         Type = MemoryMarshal.Read<PacketType>(data[16..]);
-        PacketSize = MemoryMarshal.Read<short>(data[16..]);
+        PacketSize = MemoryMarshal.Read<short>(data[18..]);
     }
 }
