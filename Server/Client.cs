@@ -47,22 +47,21 @@ public class Client : IDisposable {
             PacketSize = packet.Size
         };
         Server.FillPacket(header, packet, memory.Memory);
-        await Send(memory.Memory[..], sender);
+        await Send(memory.Memory, sender);
         memory.Dispose();
     }
 
     public async Task Send(Memory<byte> data, Client? sender) {
-        PacketType packetType = MemoryMarshal.Read<PacketType>(data.Span[16..]);
-        if (!Connected && packetType is not PacketType.Connect) {
-            Server.Logger.Error($"Didn't send {packetType} to {Id} because they weren't connected yet");
+        PacketHeader header = MemoryMarshal.Read<PacketHeader>(data.Span);
+        if (!Connected && header.Type is not PacketType.Connect) {
+            Server.Logger.Error($"Didn't send {header.Type} to {Id} because they weren't connected yet");
             return;
         }
 
-        if (packetType is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {packetType} +");
+        if (header.Type is not PacketType.Cap and not PacketType.Player)
+            Logger.Info($"About to receive {header.Type} +");
 
-        int packetSize = MemoryMarshal.Read<short>(data.Span[18..]);
-        await Socket!.SendAsync(data[..(Constants.HeaderSize + packetSize)], SocketFlags.None);
+        await Socket!.SendAsync(data[..(Constants.HeaderSize + header.PacketSize)], SocketFlags.None);
     }
 
     public static bool operator ==(Client? left, Client? right) {
