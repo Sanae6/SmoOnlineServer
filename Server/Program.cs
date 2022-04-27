@@ -7,7 +7,6 @@ using Timer = System.Timers.Timer;
 
 Server.Server server = new Server.Server();
 HashSet<int> shineBag = new HashSet<int>();
-// int shineTx = 0; // used for logging
 CancellationTokenSource cts = new CancellationTokenSource();
 Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
@@ -26,15 +25,6 @@ server.ClientJoined += (c, _) => {
             // lol who gives a fuck
         }
     }
-
-    c.PacketTransformer += (_, packet) => {
-        if (Settings.Instance.Scenario.MergeEnabled && packet is GamePacket gamePacket) {
-            gamePacket.ScenarioNum = (byte?) c.Metadata["scenario"] ?? 200;
-            return gamePacket;
-        }
-
-        return packet;
-    };
 };
 
 async Task ClientSyncShineBag(Client client) {
@@ -97,7 +87,12 @@ server.PacketHandler = (c, p) => {
                         });
                     break;
             }
-            break;
+            server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
+                gp.ScenarioNum = (byte?) from.Metadata["scenario"] ?? 200;
+
+                to.Send(gp, from);
+            });
+            return false;
         }
         case TagPacket tagPacket: {
             if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
@@ -113,7 +108,7 @@ server.PacketHandler = (c, p) => {
             ConcurrentBag<int> playerBag = (ConcurrentBag<int>) c.Metadata["shineSync"];
             shineBag.Add(shinePacket.ShineId);
             if (playerBag.Contains(shinePacket.ShineId)) break;
-            c.Logger.Info($"Got shine {shinePacket.ShineId}");
+            c.Logger.Info($"Got moon {shinePacket.ShineId}");
             playerBag.Add(shinePacket.ShineId);
             SyncShineBag();
             break;
