@@ -40,7 +40,7 @@ public class Client : IDisposable {
 
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
         if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {packetAttribute.Type}");
+            Logger.Info($"About to receive {packetAttribute.Type} -");
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Id,
             Type = packetAttribute.Type,
@@ -59,7 +59,7 @@ public class Client : IDisposable {
         }
 
         if (packetType is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {packetType}");
+            Logger.Info($"About to receive {packetType} +");
 
         int packetSize = MemoryMarshal.Read<short>(data.Span[18..]);
         await Socket!.SendAsync(data[..(Constants.HeaderSize + packetSize)], SocketFlags.None);
