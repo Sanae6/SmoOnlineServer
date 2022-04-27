@@ -237,6 +237,7 @@ public class Server {
                         MemoryMarshal.Write(tempBuffer.Memory.Span, ref connectHeader);
                         ConnectPacket connectPacket = new ConnectPacket {
                             ConnectionType = ConnectPacket.ConnectionTypes.FirstConnection, // doesn't matter what it is
+                            MaxPlayers = Settings.Instance.Server.MaxPlayers,
                             ClientName = other.Name
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
