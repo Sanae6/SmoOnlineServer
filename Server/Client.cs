@@ -32,26 +32,24 @@ public class Client : IDisposable {
             Socket.Disconnect(false);
     }
 
-    public delegate IPacket PacketTransformerDel(Client? sender, IPacket packet);
-
 
     public async Task Send<T>(T packet, Client? sender = null) where T : struct, IPacket {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
 
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
         if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {packetAttribute.Type} - {typeof(T)}");
+            Logger.Info($"About to receive {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Id,
             Type = packetAttribute.Type,
             PacketSize = packet.Size
         };
         Server.FillPacket(header, packet, memory.Memory);
-        await Send(memory.Memory, sender);
+        await Send(memory.Memory, sender, packetAttribute.Type);
         memory.Dispose();
     }
 
-    public async Task Send(Memory<byte> data, Client? sender) {
+    public async Task Send(Memory<byte> data, Client? sender, PacketType? partTime = null) {
         PacketHeader header = new PacketHeader();
         header.Deserialize(data.Span);
         if (!Connected && header.Type is not PacketType.Connect) {
@@ -60,7 +58,7 @@ public class Client : IDisposable {
         }
 
         if (header.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {header.Type} +");
+            Logger.Info($"About to receive {header.Type} + ({(short)header.Type}), {partTime} ({(short?) partTime})");
 
         await Socket!.SendAsync(data[..(Constants.HeaderSize + header.PacketSize)], SocketFlags.None);
     }
