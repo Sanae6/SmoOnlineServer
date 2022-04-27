@@ -38,15 +38,18 @@ public class Client : IDisposable {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
 
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
-        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
         PacketHeader header = new PacketHeader {
             Id = sender?.Id ?? Id,
             Type = packetAttribute.Type,
             PacketSize = packet.Size
         };
         Server.FillPacket(header, packet, memory.Memory);
-        await Send(memory.Memory, sender, packetAttribute.Type);
+
+        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
+            Logger.Info($"About to receive {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
+        await Socket!.SendAsync(memory.Memory[..(Constants.HeaderSize + packet.Size)], SocketFlags.None);
+        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
+            Logger.Info($"Receiving {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
         memory.Dispose();
     }
 
