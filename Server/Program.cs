@@ -58,9 +58,7 @@ timer.Enabled = true;
 timer.Elapsed += (_, _) => { SyncShineBag(); };
 timer.Start();
 
-float MarioSize(bool is2d) {
-    return is2d ? 180 : 160;
-}
+float MarioSize(bool is2d) => is2d ? 180 : 160;
 
 server.PacketHandler = (c, p) => {
     switch (p) {
@@ -74,26 +72,27 @@ server.PacketHandler = (c, p) => {
                     c.Metadata["speedrun"] = true;
                     ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
                     shineBag.Clear();
-                    c.Logger.Info("Entered Cap on scenario 0, enabling speedrun flag");
+                    c.Logger.Info("Entered Cap on new save, preventing moon sync until Cascade");
                     break;
                 case "WaterfallWorldHomeStage":
                     bool wasSpeedrun = (bool) c.Metadata["speedrun"]!;
                     c.Metadata["speedrun"] = false;
                     if (wasSpeedrun)
                         Task.Run(async () => {
-                            c.Logger.Info("Entered Cascade with speedrun mode on");
+                            c.Logger.Info("Entered Cascade with moon sync disabled, enabling moon sync");
                             await Task.Delay(15000);
                             await ClientSyncShineBag(c);
                         });
                     break;
             }
-            server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
-                gp.ScenarioNum = (byte?) to.Metadata["scenario"] ?? 200;
-                from.Logger.Warn($"to {to.Logger.Name}, {to.Metadata["scenario"]}-{gp.ScenarioNum}");
-
-                to.Send(gp, from);
-            });
-            return false;
+            if (Settings.Instance.Scenario.MergeEnabled) {
+                server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
+                    gp.ScenarioNum = (byte?) to.Metadata["scenario"] ?? 200;
+                    to.Send(gp, from);
+                });
+                return false;
+            }
+            break;
         }
         case TagPacket tagPacket: {
             if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;

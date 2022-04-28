@@ -68,7 +68,7 @@ public class Server {
     public delegate void PacketReplacer<in T>(Client from, Client to, T value); // replacer must send
 
     public void BroadcastReplace<T>(T packet, Client sender, PacketReplacer<T> packetReplacer) where T : struct, IPacket {
-        foreach (Client client in Clients.Where(client => sender.Id != client.Id)) packetReplacer(sender, client, packet);
+        foreach (Client client in Clients.Where(client => client.Connected && sender.Id != client.Id)) packetReplacer(sender, client, packet);
     }
 
     public async Task Broadcast<T>(T packet, Client sender) where T : struct, IPacket {
@@ -157,8 +157,6 @@ public class Server {
                     if (!await Read(memory.Memory, header.PacketSize, Constants.HeaderSize))
                         break;
                 }
-
-                // if (header.Type is not PacketType.Player and not PacketType.Cap and not PacketType.Capture)Logger.Info($"Got your mom {header.Id} {header.Type} 0x{header.PacketSize:X} 0x{memory.Memory.Length:X} 0x{header.Size:X}");
 
                 // connection initialization
                 if (first) {
@@ -267,7 +265,6 @@ public class Server {
                 }
 
                 try {
-                    // if (header.Type is not PacketType.Cap and not PacketType.Player) client.Logger.Warn($"lol {header.Type}");
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + packet.Size)]);
                     if (PacketHandler?.Invoke(client, packet) is false) {
@@ -301,8 +298,7 @@ public class Server {
         try {
             client.Dispose();
         }
-        catch { /*lol*/
-        }
+        catch { /*lol*/ }
 
         Task.Run(() => Broadcast(new DisconnectPacket(), client));
     }

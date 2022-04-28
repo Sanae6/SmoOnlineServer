@@ -38,8 +38,6 @@ public class Client : IDisposable {
         IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
 
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
-        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"Pre-header {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
         try {
             Server.FillPacket(new PacketHeader {
                 Id = sender?.Id ?? Id,
@@ -48,14 +46,11 @@ public class Client : IDisposable {
             }, packet, memory.Memory);
         }
         catch (Exception e) {
-            Logger.Error($"I will lose my shit {e} {memory.Memory.Span[..Constants.HeaderSize].Length} {memory.Memory.Span[Constants.HeaderSize..].Length} {packet.Size}");
+            Logger.Error($"Failed to serialize {packetAttribute.Type}");
+            Logger.Error(e);
         }
 
-        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"About to receive {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
         await Socket!.SendAsync(memory.Memory[..(Constants.HeaderSize + packet.Size)], SocketFlags.None);
-        if (packetAttribute.Type is not PacketType.Cap and not PacketType.Player)
-            Logger.Info($"Receiving {packetAttribute.Type} ({(short)packetAttribute.Type}) - {typeof(T)}");
         memory.Dispose();
     }
 
