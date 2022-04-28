@@ -11,22 +11,22 @@ public class Logger {
 
     public void Info(string text) {
         Console.ResetColor();
-        Console.WriteLine(PrefixNewLines(text, $"Info [{Name}]"));
+        Console.Write(PrefixNewLines(text, $"Info [{Name}]"));
     }
 
     public void Warn(string text) {
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine(PrefixNewLines(text, $"Warn [{Name}]"));
+        Console.Write(PrefixNewLines(text, $"Warn [{Name}]"));
     }
 
     public void Error(string text) {
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine(PrefixNewLines(text, $"Error [{Name}]"));
+        Console.Write(PrefixNewLines(text, $"Error [{Name}]"));
     }
 
     public void Error(Exception error) {
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine(PrefixNewLines(error.ToString(), $"Error [{Name}]"));
+        Console.Write(PrefixNewLines(error.ToString(), $"Error [{Name}]"));
     }
 
     private string PrefixNewLines(string text, string prefix) {
