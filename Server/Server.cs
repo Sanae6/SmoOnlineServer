@@ -123,6 +123,9 @@ public class Server {
     private async void HandleSocket(Socket socket) {
         Client client = new Client(socket) {Server = this};
         IMemoryOwner<byte> memory = null!;
+        await client.Send(new InitPacket {
+            MaxPlayers = Settings.Instance.Server.MaxPlayers
+        });
         bool first = true;
         try {
             while (true) {

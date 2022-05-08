@@ -2,6 +2,7 @@
 
 public enum PacketType : short {
     Unknown,
+    Init,
     Player,
     Cap,
     Game,
