@@ -285,6 +285,14 @@ CommandHandler.RegisterCommand("tag", args => {
     }
 });
 
+CommandHandler.RegisterCommand("maxplayers", args => {
+    const string optionUsage = "Valid usage: maxplayers <playercount>";
+    if (args.Length != 1) return optionUsage;
+    if (!ushort.TryParse(args[0], out ushort maxPlayers)) return optionUsage;
+    Settings.Instance.Server.MaxPlayers = maxPlayers;
+    Settings.SaveSettings();
+});
+
 CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Where(x => x.Connected).Select(x => $"{x.Name} ({x.Id})"))}");
 
 CommandHandler.RegisterCommand("flip", args => {
@@ -370,11 +378,6 @@ CommandHandler.RegisterCommand("shine", args => {
 CommandHandler.RegisterCommand("loadsettings", _ => {
     Settings.LoadSettings();
     return "Loaded settings.json";
-});
-
-CommandHandler.RegisterCommand("savesettings", _ => {
-    Settings.SaveSettings();
-    return "Saved settings.json";
 });
 
 Console.CancelKeyPress += (_, e) => {

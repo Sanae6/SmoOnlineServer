@@ -8,8 +8,8 @@ using Shared.Packet.Packets;
 
 // Guid startId = new Guid(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-// Guid baseOtherId = Guid.Parse("8ca3fcdd-2940-1000-b5f8-579301fcbfbb");
-Guid baseOtherId = Guid.Parse("d5feae62-2e71-1000-88fd-597ea147ae88");
+Guid baseOtherId = Guid.Parse("8ca3fcdd-2940-1000-b5f8-579301fcbfbb");
+// Guid baseOtherId = Guid.Parse("d5feae62-2e71-1000-88fd-597ea147ae88");
 
 PacketType[] reboundPackets = {
     PacketType.Player,
