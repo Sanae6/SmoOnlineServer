@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Numerics;
+using System.Text;
 using Server;
 using Shared;
 using Shared.Packet.Packets;
@@ -141,16 +142,25 @@ server.PacketHandler = (c, p) => {
 };
 
 CommandHandler.RegisterCommand("rejoin", args => {
-    if (server.Clients.SingleOrDefault(c => c.Connected && args[0] == c.Name) is { } user) {
+    bool moreThanOne = false;
+    StringBuilder builder = new StringBuilder();
+    foreach (Client user in server.Clients.Where(c => c.Connected && args.Contains(c.Name))) {
+        if (moreThanOne) builder.Append(", ");
+        builder.Append(user.Name);
         user.Dispose();
-        return $"Kicked {user.Name}, use \"crash\" if you want to crash the user";
+        moreThanOne = true;
     }
 
-    return "Usage: kick <username>";
+    return moreThanOne ? $"Caused {builder} to rejoin" : "Usage: rejoin <usernames...>";
 });
 
 CommandHandler.RegisterCommand("crash", args => {
-    if (server.Clients.SingleOrDefault(c => c.Connected && args[0] == c.Name) is { } user) {
+    bool moreThanOne = false;
+    StringBuilder builder = new StringBuilder();
+    foreach (Client user in server.Clients.Where(c => c.Connected && args.Contains(c.Name))) {
+        if (moreThanOne) builder.Append(", ");
+        moreThanOne = true;
+        builder.Append(user.Name);
         Task.Run(async () => {
             await user.Send(new ChangeStagePacket {
                 Id = "$among$us/SubArea",
@@ -160,14 +170,18 @@ CommandHandler.RegisterCommand("crash", args => {
             });
             user.Dispose();
         });
-        return $"Crashed {user.Name}";
     }
 
-    return "Usage: crash <username>";
+    return moreThanOne ? $"Crashed {builder}" : "Usage: crash <usernames...>";
 });
 
 CommandHandler.RegisterCommand("ban", args => {
-    if (server.Clients.SingleOrDefault(c => c.Connected && args[0] == c.Name) is { } user) {
+    bool moreThanOne = false;
+    StringBuilder builder = new StringBuilder();
+    foreach (Client user in server.Clients.Where(c => c.Connected && args.Contains(c.Name))) {
+        if (moreThanOne) builder.Append(", ");
+        moreThanOne = true;
+        builder.Append(user.Name);
         Task.Run(async () => {
             await user.Send(new ChangeStagePacket {
                 Id = "$agogus/banned4lyfe",
@@ -180,9 +194,12 @@ CommandHandler.RegisterCommand("ban", args => {
             if (endpoint != null) Settings.Instance.BanList.IpAddresses.Add(endpoint.ToString());
             user.Dispose();
         });
-        return $"Crashed {user.Name}";
     }
 
+    if (moreThanOne) {
+        Settings.SaveSettings();
+        return $"Banned {builder}.";
+    }
     return "Usage: crash <username>";
 });
 
