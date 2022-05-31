@@ -42,6 +42,7 @@ public class Settings {
     public ServerTable Server { get; set; } = new ServerTable();
     public FlipTable Flip { get; set; } = new FlipTable();
     public ScenarioTable Scenario { get; set; } = new ScenarioTable();
+    public BannedPlayers BanList { get; set; } = new BannedPlayers();
 
     public class ServerTable {
         public string Address { get; set; } = IPAddress.Any.ToString();
@@ -54,13 +55,19 @@ public class Settings {
     }
 
     public class HiddenPlayers {
-        public List<Guid> Players { get; set; } = new List<Guid>();
         public bool Enabled { get; set; } = false;
+        public List<Guid> Players { get; set; } = new List<Guid>();
+    }
+
+    public class BannedPlayers {
+        public bool Enabled { get; set; } = false;
+        public List<Guid> Players { get; set; } = new List<Guid>();
+        public List<string> IpAddresses { get; set; } = new List<string>();
     }
 
     public class FlipTable {
-        public List<Guid> Players { get; set; } = new List<Guid>();
         public bool Enabled { get; set; } = true;
+        public List<Guid> Players { get; set; } = new List<Guid>();
         public FlipOptions Pov { get; set; } = FlipOptions.Both;
     }
 }

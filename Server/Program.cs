@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Net;
 using System.Numerics;
 using Server;
 using Shared;
@@ -138,6 +139,52 @@ server.PacketHandler = (c, p) => {
 
     return true;
 };
+
+CommandHandler.RegisterCommand("rejoin", args => {
+    if (server.Clients.SingleOrDefault(c => c.Connected && args[0] == c.Name) is { } user) {
+        user.Dispose();
+        return $"Kicked {user.Name}, use \"crash\" if you want to crash the user";
+    }
+
+    return "Usage: kick <username>";
+});
+
+CommandHandler.RegisterCommand("crash", args => {
+    if (server.Clients.SingleOrDefault(c => c.Connected && args[0] == c.Name) is { } user) {
+        Task.Run(async () => {
+            await user.Send(new ChangeStagePacket {
+                Id = "$among$us/SubArea",
+                Stage = "$agogusStage",
+                Scenario = 21,
+                SubScenarioType = 69 // invalid id
+            });
+            user.Dispose();
+        });
+        return $"Crashed {user.Name}";
+    }
+
+    return "Usage: crash <username>";
+});
+
+CommandHandler.RegisterCommand("ban", args => {
+    if (server.Clients.SingleOrDefault(c => c.Connected && args[0] == c.Name) is { } user) {
+        Task.Run(async () => {
+            await user.Send(new ChangeStagePacket {
+                Id = "$agogus/banned4lyfe",
+                Stage = "$ejected",
+                Scenario = 69,
+                SubScenarioType = 21 // invalid id
+            });
+            IPEndPoint? endpoint = (IPEndPoint?) user.Socket?.RemoteEndPoint;
+            Settings.Instance.BanList.Players.Add(user.Id);
+            if (endpoint != null) Settings.Instance.BanList.IpAddresses.Add(endpoint.ToString());
+            user.Dispose();
+        });
+        return $"Crashed {user.Name}";
+    }
+
+    return "Usage: crash <username>";
+});
 
 CommandHandler.RegisterCommand("send", args => {
     const string optionUsage = "Usage: send <stage> <id> <scenario[0..255]> <player/*>";
@@ -291,6 +338,9 @@ CommandHandler.RegisterCommand("maxplayers", args => {
     if (!ushort.TryParse(args[0], out ushort maxPlayers)) return optionUsage;
     Settings.Instance.Server.MaxPlayers = maxPlayers;
     Settings.SaveSettings();
+    foreach (Client client in server.Clients)
+        client.Dispose(); // reconnect all players
+    return $"Saved and set max players to {maxPlayers}";
 });
 
 CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Where(x => x.Connected).Select(x => $"{x.Name} ({x.Id})"))}");
