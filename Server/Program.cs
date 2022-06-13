@@ -12,6 +12,8 @@ HashSet<int> shineBag = new HashSet<int>();
 CancellationTokenSource cts = new CancellationTokenSource();
 Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
+DiscordBot bot = new DiscordBot();
+bot.Run();
 
 server.ClientJoined += (c, _) => {
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
@@ -453,15 +455,10 @@ Console.CancelKeyPress += (_, e) => {
     cts.Cancel();
 };
 
-CommandHandler.RegisterCommand("exit", _ => {
+CommandHandler.RegisterCommandAliases(_ => {
     cts.Cancel();
-    return "Shutting down clients";
-});
-
-CommandHandler.RegisterCommand("quit", _ => {
-    cts.Cancel();
-    return "Shutting down clients";
-});
+    return "Shutting down";
+}, "exit", "quit", "q");
 
 Task.Run(() => {
     consoleLogger.Info("Run help command for valid commands.");

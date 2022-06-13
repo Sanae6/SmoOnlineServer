@@ -13,6 +13,12 @@ public static class CommandHandler {
         Handlers[name] = handler;
     }
 
+    public static void RegisterCommandAliases(Handler handler, params string[] names) {
+        foreach (string name in names) {
+            Handlers.Add(name, handler);
+        }
+    }
+
     public static Response GetResult(string input) {
         try {
             string[] args = input.Split(' ');

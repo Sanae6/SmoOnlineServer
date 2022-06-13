@@ -9,27 +9,15 @@ public class Logger {
 
     public string Name { get; set; }
 
-    public void Info(string text) {
-        Console.ResetColor();
-        Console.Write(PrefixNewLines(text, $"Info [{Name}]"));
-    }
+    public void Info(string text) => Handler?.Invoke(Name, "Info", text, ConsoleColor.White);
 
-    public void Warn(string text) {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write(PrefixNewLines(text, $"Warn [{Name}]"));
-    }
+    public void Warn(string text) => Handler?.Invoke(Name, "Warn", text, ConsoleColor.Yellow);
 
-    public void Error(string text) {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.Write(PrefixNewLines(text, $"Error [{Name}]"));
-    }
+    public void Error(string text) => Handler?.Invoke(Name, "Error", text, ConsoleColor.Red);
 
-    public void Error(Exception error) {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.Write(PrefixNewLines(error.ToString(), $"Error [{Name}]"));
-    }
+    public void Error(Exception error) => Error(error.ToString());
 
-    private string PrefixNewLines(string text, string prefix) {
+    public static string PrefixNewLines(string text, string prefix) {
         StringBuilder builder = new StringBuilder();
         foreach (string str in text.Split('\n'))
             builder
@@ -37,5 +25,17 @@ public class Logger {
                 .Append(' ')
                 .AppendLine(str);
         return builder.ToString();
+    }
+
+    public delegate void LogHandler(string source, string level, string text, ConsoleColor color);
+
+    private static LogHandler? Handler;
+    public static void AddLogHandler(LogHandler handler) => Handler += handler;
+
+    static Logger() {
+        AddLogHandler((source, level, text, color) => {
+            Console.ForegroundColor = color;
+            Console.Write(PrefixNewLines(text, $"{level} [{source}]"));
+        });
     }
 }

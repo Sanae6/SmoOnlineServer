@@ -9,6 +9,7 @@ namespace Server;
 public class Settings {
     public static Settings Instance = new Settings();
     private static readonly Logger Logger = new Logger("Settings");
+    public static Action? LoadHandler;
 
     static Settings() {
         LoadSettings();
@@ -24,9 +25,9 @@ public class Settings {
             catch (Exception e) {
                 Logger.Warn($"Failed to load settings.json: {e}");
             }
-        } else {
-            SaveSettings();
         }
+        SaveSettings();
+        LoadHandler?.Invoke();
     }
 
     public static void SaveSettings() {
@@ -43,6 +44,7 @@ public class Settings {
     public FlipTable Flip { get; set; } = new FlipTable();
     public ScenarioTable Scenario { get; set; } = new ScenarioTable();
     public BannedPlayers BanList { get; set; } = new BannedPlayers();
+    public DiscordTable Discord { get; set; } = new DiscordTable();
 
     public class ServerTable {
         public string Address { get; set; } = IPAddress.Any.ToString();
@@ -69,5 +71,11 @@ public class Settings {
         public bool Enabled { get; set; } = true;
         public List<Guid> Players { get; set; } = new List<Guid>();
         public FlipOptions Pov { get; set; } = FlipOptions.Both;
+    }
+
+    public class DiscordTable {
+        public string? Token { get; set; }
+        public string Prefix { get; set; } = "$";
+        public string? LogChannel { get; set; }
     }
 }
