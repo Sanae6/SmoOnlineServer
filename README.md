@@ -15,7 +15,7 @@ Run these commands in your shell:
 ```shell
 git clone https://github.com/Sanae6/SmoOnlineServer
 cd SmoOnlineServer
-# replace run with build to only build the server 
+# replace run with build to only build the server
 dotnet run --project Server/Server.csproj -c Release
 ```
 If you ran `dotnet build` instead of `dotnet run`, you can find the binary at `Server/bin/net6.0/Release/Server.exe`

@@ -149,7 +149,8 @@ server.PacketHandler = (c, p) => {
 CommandHandler.RegisterCommand("rejoin", args => {
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    foreach (Client user in server.Clients.Where(c => c.Connected && args.Contains(c.Name))) {
+    foreach (Client user in server.Clients.Where(c => c.Connected && args.Any(x => c.Name.StartsWith(x) ||
+                 (Guid.TryParse(x, out Guid result) && result == c.Id)))) {
         if (moreThanOne) builder.Append(", ");
         builder.Append(user.Name);
         user.Dispose();
@@ -162,7 +163,8 @@ CommandHandler.RegisterCommand("rejoin", args => {
 CommandHandler.RegisterCommand("crash", args => {
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    foreach (Client user in server.Clients.Where(c => c.Connected && args.Contains(c.Name))) {
+    foreach (Client user in server.Clients.Where(c => c.Connected && args.Any(x => c.Name.StartsWith(x) ||
+                 (Guid.TryParse(x, out Guid result) && result == c.Id)))) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
         builder.Append(user.Name);
@@ -183,7 +185,8 @@ CommandHandler.RegisterCommand("crash", args => {
 CommandHandler.RegisterCommand("ban", args => {
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    foreach (Client user in server.Clients.Where(c => c.Connected && args.Contains(c.Name))) {
+    foreach (Client user in server.Clients.Where(c => c.Connected && args.Any(x => c.Name.StartsWith(x) ||
+                 (Guid.TryParse(x, out Guid result) && result == c.Id)))) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
         builder.Append(user.Name);
@@ -225,7 +228,8 @@ CommandHandler.RegisterCommand("send", args => {
     }
 
     if (!sbyte.TryParse(args[2], out sbyte scenario)) return $"Invalid scenario number {args[2]} (range: [-128 to 127])";
-    Client[] players = args[3] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
+    Client[] players = args[3] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Any(x => c.Name.StartsWith(x) ||
+        (Guid.TryParse(x, out Guid result) && result == c.Id))).ToArray();
     Parallel.ForEachAsync(players, async (c, _) => {
         await c.Send(new ChangeStagePacket {
             Stage = stage,
