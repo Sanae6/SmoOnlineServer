@@ -56,11 +56,6 @@ public class Settings {
         public bool MergeEnabled { get; set; } = false;
     }
 
-    public class HiddenPlayers {
-        public bool Enabled { get; set; } = false;
-        public List<Guid> Players { get; set; } = new List<Guid>();
-    }
-
     public class BannedPlayers {
         public bool Enabled { get; set; } = false;
         public List<Guid> Players { get; set; } = new List<Guid>();

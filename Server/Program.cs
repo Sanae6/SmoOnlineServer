@@ -16,6 +16,9 @@ DiscordBot bot = new DiscordBot();
 bot.Run();
 
 server.ClientJoined += (c, _) => {
+    if (Settings.Instance.BanList.Enabled && (Settings.Instance.BanList.Players.Contains(c.Id) || Settings.Instance.BanList.IpAddresses.Contains(
+            ((IPEndPoint)c.Socket!.RemoteEndPoint!).Address.ToString())))
+        throw new Exception($"Banned player attempted join: {c.Name}");
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = (byte?)0;
