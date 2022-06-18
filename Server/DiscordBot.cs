@@ -40,6 +40,7 @@ public class DiscordBot {
                     $"Console log:```{Logger.PrefixNewLines(text, $"{level} [{source}]")}```");
             }
         } catch (Exception e) {
+            // don't log again, it'll just stack overflow the server!
             await Console.Error.WriteLineAsync("Exception in discord logger");
             await Console.Error.WriteLineAsync(e.ToString());
         }
@@ -63,8 +64,6 @@ public class DiscordBot {
             string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
             DiscordClient.MessageCreated += async (_, args) => {
                 DiscordMessage msg = args.Message;
-                Console.WriteLine(
-                    $"{msg.Content} {DiscordClient.CurrentUser.Mention} {msg.Content.StartsWith(mentionPrefix)}");
                 if (msg.Content.StartsWith(Prefix)) {
                     await msg.Channel.TriggerTypingAsync();
                     await msg.RespondAsync(string.Join('\n',
