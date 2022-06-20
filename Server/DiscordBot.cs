@@ -37,7 +37,7 @@ public class DiscordBot {
         try {
             if (DiscordClient != null && LogChannel != null) {
                 await DiscordClient.SendMessageAsync(LogChannel,
-                    $"Console log:```{Logger.PrefixNewLines(text, $"{level} [{source}]")}```");
+                    $"```{Logger.PrefixNewLines(text, $"{level} [{source}]")}```");
             }
         } catch (Exception e) {
             // don't log again, it'll just stack overflow the server!
