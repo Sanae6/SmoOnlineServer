@@ -16,19 +16,19 @@ DiscordBot bot = new DiscordBot();
 bot.Run();
 
 server.ClientJoined += (c, _) => {
-    if (Settings.Instance.BanList.Enabled && (Settings.Instance.BanList.Players.Contains(c.Id) || Settings.Instance.BanList.IpAddresses.Contains(
-            ((IPEndPoint)c.Socket!.RemoteEndPoint!).Address.ToString())))
+    if (Settings.Instance.BanList.Enabled && (Settings.Instance.BanList.Players.Contains(c.Id) ||
+                                              Settings.Instance.BanList.IpAddresses.Contains(
+                                                  ((IPEndPoint) c.Socket!.RemoteEndPoint!).Address.ToString())))
         throw new Exception($"Banned player attempted join: {c.Name}");
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
-    c.Metadata["scenario"] = (byte?)0;
+    c.Metadata["scenario"] = (byte?) 0;
     c.Metadata["2d"] = false;
     c.Metadata["speedrun"] = false;
     foreach (Client client in server.Clients.Where(client => client.Metadata.ContainsKey("lastGamePacket")).ToArray()) {
         try {
             c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client).Wait();
-        }
-        catch {
+        } catch {
             // lol who gives a fuck
         }
     }
@@ -44,8 +44,7 @@ async Task ClientSyncShineBag(Client client) {
                 ShineId = shine
             });
         }
-    }
-    catch {
+    } catch {
         // errors that can happen when sending will crash the server :)
     }
 }
@@ -53,8 +52,7 @@ async Task ClientSyncShineBag(Client client) {
 async void SyncShineBag() {
     try {
         await Parallel.ForEachAsync(server.Clients.ToArray(), async (client, _) => await ClientSyncShineBag(client));
-    }
-    catch {
+    } catch {
         // errors that can happen shines change will crash the server :)
     }
 }
@@ -92,6 +90,7 @@ server.PacketHandler = (c, p) => {
                         });
                     break;
             }
+
             if (Settings.Instance.Scenario.MergeEnabled) {
                 server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
                     gp.ScenarioNum = (byte?) to.Metadata["scenario"] ?? 200;
@@ -99,11 +98,13 @@ server.PacketHandler = (c, p) => {
                 });
                 return false;
             }
+
             break;
         }
         case TagPacket tagPacket: {
             if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
-            if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0) c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
+            if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0)
+                c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
             break;
         }
         case CostumePacket:
@@ -124,7 +125,8 @@ server.PacketHandler = (c, p) => {
                                             && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
                                             && Settings.Instance.Flip.Players.Contains(c.Id): {
             playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
-            playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
+            playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) *
+                                     Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
             server.Broadcast(playerPacket, c);
             return false;
         }
@@ -134,7 +136,8 @@ server.PacketHandler = (c, p) => {
             server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
                 if (Settings.Instance.Flip.Players.Contains(to.Id)) {
                     sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
-                    sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
+                    sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) *
+                                   Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
                 }
 
                 to.Send(sp, from);
@@ -208,6 +211,7 @@ CommandHandler.RegisterCommand("ban", args => {
         Settings.SaveSettings();
         return $"Banned {builder}.";
     }
+
     return "Usage: ban <usernames...>";
 });
 
@@ -223,13 +227,17 @@ CommandHandler.RegisterCommand("send", args => {
         stage = mapName;
     }
 
-    if(!stage.Contains("Stage") && !stage.Contains("Zone")) {
+    if (!stage.Contains("Stage") && !stage.Contains("Zone")) {
         return "Invalid Stage Name!";
     }
 
-    if (!sbyte.TryParse(args[2], out sbyte scenario) || scenario < -1) return $"Invalid scenario number {args[2]} (range: [-1 to 127])";
-    Client[] players = args[3] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Any(x => c.Name.StartsWith(x) ||
-        (Guid.TryParse(x, out Guid result) && result == c.Id))).ToArray();
+    if (!sbyte.TryParse(args[2], out sbyte scenario) || scenario < -1)
+        return $"Invalid scenario number {args[2]} (range: [-1 to 127])";
+    Client[] players = args[3] == "*"
+        ? server.Clients.Where(c => c.Connected).ToArray()
+        : server.Clients.Where(c => c.Connected && args[3..].Any(x => c.Name.StartsWith(x) ||
+                                                                      (Guid.TryParse(x, out Guid result) &&
+                                                                       result == c.Id))).ToArray();
     Parallel.ForEachAsync(players, async (c, _) => {
         await c.Send(new ChangeStagePacket {
             Stage = stage,
@@ -252,7 +260,7 @@ CommandHandler.RegisterCommand("sendall", args => {
         stage = mapName;
     }
 
-    if(!stage.Contains("Stage") && !stage.Contains("Zone")) {
+    if (!stage.Contains("Stage") && !stage.Contains("Zone")) {
         return "Invalid Stage Name!";
     }
 
@@ -293,15 +301,18 @@ CommandHandler.RegisterCommand("scenario", args => {
 });
 
 CommandHandler.RegisterCommand("tag", args => {
-    const string optionUsage = "Valid options:\n\ttime <user/*> <minutes[0-65535]> <seconds[0-59]>\n\tseeking <user/*> <true/false>\n\tstart <time> <seekers>";
+    const string optionUsage =
+        "Valid options:\n\ttime <user/*> <minutes[0-65535]> <seconds[0-59]>\n\tseeking <user/*> <true/false>\n\tstart <time> <seekers>";
     if (args.Length < 3)
         return optionUsage;
     switch (args[0]) {
         case "time" when args.Length == 4: {
             if (args[1] != "*" && server.Clients.All(x => x.Name != args[1])) return $"Cannot find user {args[1]}";
             Client? client = server.Clients.FirstOrDefault(x => x.Name == args[1]);
-            if (!ushort.TryParse(args[2], out ushort minutes)) return $"Invalid time for minutes {args[2]} (range: 0-65535)";
-            if (!byte.TryParse(args[3], out byte seconds) || seconds >= 60) return $"Invalid time for seconds {args[3]} (range: 0-59)";
+            if (!ushort.TryParse(args[2], out ushort minutes))
+                return $"Invalid time for minutes {args[2]} (range: 0-65535)";
+            if (!byte.TryParse(args[3], out byte seconds) || seconds >= 60)
+                return $"Invalid time for seconds {args[3]} (range: 0-59)";
             TagPacket tagPacket = new TagPacket {
                 UpdateType = TagPacket.TagUpdate.Time,
                 Minutes = minutes,
@@ -332,7 +343,8 @@ CommandHandler.RegisterCommand("tag", args => {
             string[] seekerNames = args[2..];
             Client[] seekers = server.Clients.Where(c => seekerNames.Contains(c.Name)).ToArray();
             if (seekers.Length != seekerNames.Length)
-                return $"Couldn't find seeker{(seekerNames.Length > 1 ? "s" : "")}: {string.Join(", ", seekerNames.Where(name => server.Clients.All(c => c.Name != name)))}";
+                return
+                    $"Couldn't find seeker{(seekerNames.Length > 1 ? "s" : "")}: {string.Join(", ", seekerNames.Where(name => server.Clients.All(c => c.Name != name)))}";
             Task.Run(async () => {
                 int realTime = 1000 * time;
                 await Task.Delay(realTime);
@@ -369,10 +381,12 @@ CommandHandler.RegisterCommand("maxplayers", args => {
     return $"Saved and set max players to {maxPlayers}";
 });
 
-CommandHandler.RegisterCommand("list", _ => $"List: {string.Join("\n\t", server.Clients.Where(x => x.Connected).Select(x => $"{x.Name} ({x.Id})"))}");
+CommandHandler.RegisterCommand("list",
+    _ => $"List: {string.Join("\n\t", server.Clients.Where(x => x.Connected).Select(x => $"{x.Name} ({x.Id})"))}");
 
 CommandHandler.RegisterCommand("flip", args => {
-    const string optionUsage = "Valid options: \n\tlist\n\tadd <user id>\n\tremove <user id>\n\tset <true/false>\n\tpov <both/self/others>";
+    const string optionUsage =
+        "Valid options: \n\tlist\n\tadd <user id>\n\tremove <user id>\n\tset <true/false>\n\tpov <both/self/others>";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
@@ -389,7 +403,9 @@ CommandHandler.RegisterCommand("flip", args => {
         }
         case "remove" when args.Length == 2: {
             if (Guid.TryParse(args[1], out Guid result)) {
-                string output = Settings.Instance.Flip.Players.Remove(result) ? $"Removed {result} to flipped players" : $"User {result} wasn't in the flipped players list";
+                string output = Settings.Instance.Flip.Players.Remove(result)
+                    ? $"Removed {result} to flipped players"
+                    : $"User {result} wasn't in the flipped players list";
                 Settings.SaveSettings();
                 return output;
             }
@@ -428,7 +444,8 @@ CommandHandler.RegisterCommand("shine", args => {
             return $"Shines: {string.Join(", ", shineBag)}";
         case "clear" when args.Length == 1:
             shineBag.Clear();
-            foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient => (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
+            foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient =>
+                         (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
 
             return "Cleared shine bags";
         case "sync" when args.Length == 1:
@@ -436,7 +453,9 @@ CommandHandler.RegisterCommand("shine", args => {
             return "Synced shine bag automatically";
         case "send" when args.Length >= 3:
             if (int.TryParse(args[1], out int id)) {
-                Client[] players = args[2] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
+                Client[] players = args[2] == "*"
+                    ? server.Clients.Where(c => c.Connected).ToArray()
+                    : server.Clients.Where(c => c.Connected && args[3..].Contains(c.Name)).ToArray();
                 Parallel.ForEachAsync(players, async (c, _) => {
                     await c.Send(new ShinePacket {
                         ShineId = id
