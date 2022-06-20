@@ -12,18 +12,31 @@ public class DiscordBot {
     private string Prefix => Config.Prefix;
     private readonly Logger Logger = new Logger("Discord");
     private DiscordChannel? LogChannel;
+    private bool Reconnecting;
 
     public DiscordBot() {
         Token = Config.Token;
         Logger.AddLogHandler(Log);
+        CommandHandler.RegisterCommand("dscrestart", _ => {
+            // this should be async'ed but i'm lazy
+            Reconnecting = true;
+            Task.Run(Reconnect);
+            return "Restarting Discord bot";
+        });
         if (Config.Token == null) return;
         Settings.LoadHandler += SettingsLoadHandler;
+    }
+
+    private async Task Reconnect() {
+        if (DiscordClient != null) // usually null prop works, not here though...`
+            await DiscordClient.DisconnectAsync();
+        await Run();
     }
 
     private async void SettingsLoadHandler() {
         try {
             if (DiscordClient == null || Token != Config.Token)
-                Run();
+                await Run();
             if (Config.LogChannel != null)
                 LogChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.LogChannel)) ??
                                     throw new NullReferenceException("Discord client not setup yet!"));
@@ -37,16 +50,17 @@ public class DiscordBot {
         try {
             if (DiscordClient != null && LogChannel != null) {
                 await DiscordClient.SendMessageAsync(LogChannel,
-                    $"Console log:```{Logger.PrefixNewLines(text, $"{level} [{source}]")}```");
+                    $"```{Logger.PrefixNewLines(text, $"{level} [{source}]")}```");
             }
         } catch (Exception e) {
             // don't log again, it'll just stack overflow the server!
+            if (Reconnecting) return; // skip if reconnecting
             await Console.Error.WriteLineAsync("Exception in discord logger");
             await Console.Error.WriteLineAsync(e.ToString());
         }
     }
 
-    public async void Run() {
+    public async Task Run() {
         Token = Config.Token;
         DiscordClient?.Dispose();
         if (Config.Token == null) {
@@ -61,11 +75,19 @@ public class DiscordBot {
             });
             await DiscordClient.ConnectAsync(new DiscordActivity("Hide and Seek", ActivityType.Competing));
             SettingsLoadHandler();
+            Logger.Info(
+                $"Discord bot logged in as {DiscordClient.CurrentUser.Username}#{DiscordClient.CurrentUser.Discriminator}");
+            Reconnecting = false;
             string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
             DiscordClient.MessageCreated += async (_, args) => {
+                if (args.Author.IsCurrent) return;
                 try {
                     DiscordMessage msg = args.Message;
-                    if (msg.Content.StartsWith(Prefix)) {
+                    if (string.IsNullOrEmpty(Prefix)) {
+                        await msg.Channel.TriggerTypingAsync();
+                        await msg.RespondAsync(string.Join('\n',
+                            CommandHandler.GetResult(msg.Content).ReturnStrings));
+                    } else if (msg.Content.StartsWith(Prefix)) {
                         await msg.Channel.TriggerTypingAsync();
                         await msg.RespondAsync(string.Join('\n',
                             CommandHandler.GetResult(msg.Content[Prefix.Length..]).ReturnStrings));
