@@ -208,11 +208,11 @@ CommandHandler.RegisterCommand("ban", args => {
         Settings.SaveSettings();
         return $"Banned {builder}.";
     }
-    return "Usage: crash <username>";
+    return "Usage: ban <usernames...>";
 });
 
 CommandHandler.RegisterCommand("send", args => {
-    const string optionUsage = "Usage: send <stage> <id> <scenario[0..255]> <player/*>";
+    const string optionUsage = "Usage: send <stage> <id> <scenario[-1..127]> <player/*>";
     if (args.Length < 4)
         return optionUsage;
 
@@ -227,7 +227,7 @@ CommandHandler.RegisterCommand("send", args => {
         return "Invalid Stage Name!";
     }
 
-    if (!sbyte.TryParse(args[2], out sbyte scenario)) return $"Invalid scenario number {args[2]} (range: [-128 to 127])";
+    if (!sbyte.TryParse(args[2], out sbyte scenario) || scenario < -1) return $"Invalid scenario number {args[2]} (range: [-1 to 127])";
     Client[] players = args[3] == "*" ? server.Clients.Where(c => c.Connected).ToArray() : server.Clients.Where(c => c.Connected && args[3..].Any(x => c.Name.StartsWith(x) ||
         (Guid.TryParse(x, out Guid result) && result == c.Id))).ToArray();
     Parallel.ForEachAsync(players, async (c, _) => {
