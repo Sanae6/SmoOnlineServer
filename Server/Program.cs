@@ -13,7 +13,7 @@ CancellationTokenSource cts = new CancellationTokenSource();
 Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
 DiscordBot bot = new DiscordBot();
-bot.Run();
+await bot.Run();
 
 server.ClientJoined += (c, _) => {
     if (Settings.Instance.BanList.Enabled && (Settings.Instance.BanList.Players.Contains(c.Id) ||
@@ -473,6 +473,15 @@ CommandHandler.RegisterCommand("shine", args => {
 CommandHandler.RegisterCommand("loadsettings", _ => {
     Settings.LoadSettings();
     return "Loaded settings.json";
+});
+
+async CommandHandler.RegisterCommand("reconnect", _ => {
+    // this should be async'ed but i'm lazy
+    await bot.DisconnectAsync();
+    Task.Delay(2500);
+    await bot.ConnectAsync();
+    Task.Delay(1000);
+    return "reconnected successful";
 });
 
 Console.CancelKeyPress += (_, e) => {
