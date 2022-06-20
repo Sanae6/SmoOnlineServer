@@ -456,6 +456,15 @@ CommandHandler.RegisterCommand("loadsettings", _ => {
     return "Loaded settings.json";
 });
 
+async CommandHandler.RegisterCommand("reconnect", _ => {
+    // this should be async'ed but i'm lazy
+    await bot.DisconnectAsync();
+    Task.Delay(2500);
+    await bot.ConnectAsync();
+    Task.Delay(1000);
+    return "reconnected successful";
+});
+
 Console.CancelKeyPress += (_, e) => {
     e.Cancel = true;
     consoleLogger.Info("Received Ctrl+C");
