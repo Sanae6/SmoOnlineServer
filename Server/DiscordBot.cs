@@ -63,16 +63,30 @@ public class DiscordBot {
             SettingsLoadHandler();
             string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
             DiscordClient.MessageCreated += async (_, args) => {
-                DiscordMessage msg = args.Message;
-                if (msg.Content.StartsWith(Prefix)) {
-                    await msg.Channel.TriggerTypingAsync();
-                    await msg.RespondAsync(string.Join('\n',
-                        CommandHandler.GetResult(msg.Content[Prefix.Length..]).ReturnStrings));
-                } else if (msg.Content.StartsWith(mentionPrefix)) {
-                    await msg.Channel.TriggerTypingAsync();
-                    await msg.RespondAsync(string.Join('\n',
-                        CommandHandler.GetResult(msg.Content[mentionPrefix.Length..]).ReturnStrings));
+                try {
+                    DiscordMessage msg = args.Message;
+                    if (msg.Content.StartsWith(Prefix)) {
+                        await msg.Channel.TriggerTypingAsync();
+                        await msg.RespondAsync(string.Join('\n',
+                            CommandHandler.GetResult(msg.Content[Prefix.Length..]).ReturnStrings));
+                    } else if (msg.Content.StartsWith(mentionPrefix)) {
+                        await msg.Channel.TriggerTypingAsync();
+                        await msg.RespondAsync(string.Join('\n',
+                            CommandHandler.GetResult(msg.Content[mentionPrefix.Length..]).ReturnStrings));
+                    }
+                } catch (Exception e) {
+                    Logger.Error(e);
                 }
+            };
+            DiscordClient.ClientErrored += (_, args) => {
+                Logger.Error("Discord client caught an error in handler!");
+                Logger.Error(args.Exception);
+                return Task.CompletedTask;
+            };
+            DiscordClient.SocketErrored += (_, args) => {
+                Logger.Error("Discord client caught an error on socket!");
+                Logger.Error(args.Exception);
+                return Task.CompletedTask;
             };
         } catch (Exception e) {
             Logger.Error("Exception occurred in discord runner!");
