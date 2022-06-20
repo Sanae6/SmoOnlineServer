@@ -34,8 +34,9 @@ public class Logger {
 
     static Logger() {
         AddLogHandler((source, level, text, color) => {
+            DateTime logtime = DateTime.Now;
             Console.ForegroundColor = color;
-            Console.Write(PrefixNewLines(text, $"{level} [{source}]"));
+            Console.Write(PrefixNewLines(text, $"{{{logtime}}} {level} [{source}]"));
         });
     }
 }
