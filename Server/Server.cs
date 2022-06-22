@@ -1,6 +1,8 @@
 ﻿using System.Buffers;
+using System.ComponentModel;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Shared;
 using Shared.Packet;
@@ -270,6 +272,20 @@ public class Server {
                 try {
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + packet.Size)]);
+
+                    // TODO: expose toggle to config
+#if DEBUG
+                    Type packetType = packet.GetType();
+                    FieldInfo[] fields = packetType.GetFields();
+
+                    client.Logger.Debug($"[RECV] {packetType.Name} {{");
+                    foreach (FieldInfo field in fields)
+                    {
+                        client.Logger.Debug($"\t{field.Name} = {field.GetValue(packet)}");
+                    }
+                    client.Logger.Debug($"}}");
+#endif
+
                     if (PacketHandler?.Invoke(client, packet) is false) {
                         memory.Dispose();
                         continue;

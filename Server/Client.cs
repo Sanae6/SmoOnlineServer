@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Shared;
 using Shared.Packet;
@@ -49,6 +50,18 @@ public class Client : IDisposable {
             Logger.Error($"Failed to serialize {packetAttribute.Type}");
             Logger.Error(e);
         }
+
+#if DEBUG
+        Type packetType = packet.GetType();
+        FieldInfo[] fields = packetType.GetFields();
+
+        Logger.Debug($"[SEND] {packetType.Name} {{");
+        foreach (FieldInfo field in fields)
+        {
+            Logger.Debug($"\t{field.Name} = {field.GetValue(packet)}");
+        }
+        Logger.Debug($"}}");
+#endif
 
         await Socket!.SendAsync(memory.Memory[..(Constants.HeaderSize + packet.Size)], SocketFlags.None);
         memory.Dispose();
