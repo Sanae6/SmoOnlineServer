@@ -1,9 +1,6 @@
 ﻿using System.Buffers;
-using System.ComponentModel;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using Shared;
 using Shared.Packet;
 using Shared.Packet.Packets;
@@ -81,10 +78,18 @@ public class Server {
             PacketSize = packet.Size
         };
         FillPacket(header, packet, memory.Memory);
+
+#if DEBUG
+        PacketUtils.LogPacket(packet, "BRDC", sender.Logger);
+#endif
         await Broadcast(memory, sender);
     }
 
     public Task Broadcast<T>(T packet) where T : struct, IPacket {
+#if DEBUG
+        PacketUtils.LogPacket(packet, "BRDC", Logger);
+#endif
+
         return Task.WhenAll(Clients.Where(c => c.Connected).Select(async client => {
             IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
             PacketHeader header = new PacketHeader {
@@ -244,12 +249,18 @@ public class Server {
                             ClientName = other.Name
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
+#if DEBUG
+                        PacketUtils.LogPacket(connectPacket, "SEND", Logger);
+#endif
                         await client.Send(tempBuffer.Memory[..(Constants.HeaderSize + connect.Size)], null);
                         if (other.CurrentCostume.HasValue) {
                             connectHeader.Type = PacketType.Costume;
                             connectHeader.PacketSize = other.CurrentCostume.Value.Size;
                             connectHeader.Serialize(tempBuffer.Memory.Span[..Constants.HeaderSize]);
                             other.CurrentCostume.Value.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + connectHeader.PacketSize)]);
+#if DEBUG
+                            PacketUtils.LogPacket((CostumePacket)other.CurrentCostume, "SEND", Logger);
+#endif
                             await client.Send(tempBuffer.Memory[..(Constants.HeaderSize + connectHeader.PacketSize)], null);
                         }
 
@@ -273,17 +284,8 @@ public class Server {
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + packet.Size)]);
 
-                    // TODO: expose toggle to config
 #if DEBUG
-                    Type packetType = packet.GetType();
-                    FieldInfo[] fields = packetType.GetFields();
-
-                    client.Logger.Debug($"[RECV] {packetType.Name} {{");
-                    foreach (FieldInfo field in fields)
-                    {
-                        client.Logger.Debug($"\t{field.Name} = {field.GetValue(packet)}");
-                    }
-                    client.Logger.Debug($"}}");
+                    PacketUtils.LogPacket(packet, "RECV", client.Logger);
 #endif
 
                     if (PacketHandler?.Invoke(client, packet) is false) {
@@ -294,6 +296,12 @@ public class Server {
                 catch (Exception e) {
                     client.Logger.Error($"Packet handler warning: {e}");
                 }
+
+#if DEBUG
+                if (header.Type is not (PacketType.Player or PacketType.Cap)) {
+                    Logger.Debug("[BRDC] last");
+                }
+#endif
 
                 Broadcast(memory, client);
             }

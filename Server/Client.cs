@@ -1,9 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using Shared;
 using Shared.Packet;
 using Shared.Packet.Packets;
@@ -52,15 +49,7 @@ public class Client : IDisposable {
         }
 
 #if DEBUG
-        Type packetType = packet.GetType();
-        FieldInfo[] fields = packetType.GetFields();
-
-        Logger.Debug($"[SEND] {packetType.Name} {{");
-        foreach (FieldInfo field in fields)
-        {
-            Logger.Debug($"\t{field.Name} = {field.GetValue(packet)}");
-        }
-        Logger.Debug($"}}");
+        PacketUtils.LogPacket(packet, "SEND", Logger);
 #endif
 
         await Socket!.SendAsync(memory.Memory[..(Constants.HeaderSize + packet.Size)], SocketFlags.None);
