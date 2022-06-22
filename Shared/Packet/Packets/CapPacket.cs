@@ -12,7 +12,7 @@ public struct CapPacket : IPacket {
     public bool CapOut;
     public string CapAnim;
 
-    public short Size => 0x50;
+    public short Size => 32 + NameSize;
 
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref Position);
