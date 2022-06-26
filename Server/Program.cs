@@ -68,7 +68,6 @@ float MarioSize(bool is2d) => is2d ? 180 : 160;
 server.PacketHandler = (c, p) => {
     switch (p) {
         case GamePacket gamePacket: {
-            c.Logger.Info($"Got game packet {gamePacket.Stage}->{gamePacket.ScenarioNum}");
             c.Metadata["scenario"] = gamePacket.ScenarioNum;
             c.Metadata["2d"] = gamePacket.Is2d;
             c.Metadata["lastGamePacket"] = gamePacket;
@@ -382,7 +381,7 @@ CommandHandler.RegisterCommand("maxplayers", args => {
 });
 
 CommandHandler.RegisterCommand("list",
-    _ => $"List: {string.Join("\n\t", server.Clients.Where(x => x.Connected).Select(x => $"{x.Name} ({x.Id})"))}");
+    _ => $"List: {string.Join("\n      ", server.Clients.Where(x => x.Connected).Select(x => $"{x.Name} ({x.Id})"))}");
 
 CommandHandler.RegisterCommand("flip", args => {
     const string optionUsage =

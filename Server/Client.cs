@@ -49,7 +49,14 @@ public class Client : IDisposable {
         }
 
 #if DEBUG
-        PacketUtils.LogPacket(packet, "SEND", Logger);
+        Guid senderId = sender?.Id ?? Id;
+        string senderName = "?";
+        Client? client = Server.FindExistingClient(senderId);
+        if (client is not null) { 
+            senderName = client.Name;
+        }
+
+        PacketUtils.LogPacket(packet, $"{senderName} -> (server)");
 #endif
 
         await Socket!.SendAsync(memory.Memory[..(Constants.HeaderSize + packet.Size)], SocketFlags.None);

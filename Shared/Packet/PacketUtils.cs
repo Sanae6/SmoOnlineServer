@@ -20,18 +20,28 @@ public static class PacketUtils {
         return Constants.HeaderSize + Marshal.SizeOf<T>();
     }
 
-    public static void LogPacket<T>(T packet, string direction, Logger logger) where T : IPacket {
+    public static void LogPacket<T>(T packet, string tag) where T : IPacket {
         if (packet is PlayerPacket or CapPacket) // These are too spammy
             return;
 
         Type packetType = packet.GetType();
         FieldInfo[] fields = packetType.GetFields();
 
-        logger.Debug($"[{direction}] {packetType.Name} {{");
+        string prefix = $"{{{DateTime.Now}}} Debug";
+        string msg = $"{prefix} [{tag}] {packetType.Name} {{\n";
         foreach (FieldInfo field in fields)
         {
-            logger.Debug($"\t{field.Name} = {field.GetValue(packet)}");
+            msg += $"{prefix}    {field.Name} = {field.GetValue(packet)}\n";
         }
-        logger.Debug($"}}");
+
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.Write(msg);
+    }
+    public static void LogPacketSame(string tag) {
+        string prefix = $"{{{DateTime.Now}}} Debug";
+        string msg = $"{prefix} [{tag}] {{same}}\n";
+
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.Write(msg);
     }
 }
