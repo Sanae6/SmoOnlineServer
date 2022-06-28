@@ -32,6 +32,11 @@ docker  run  --rm  -it  -p 1027:1027  -v smoo-data:/data/  ghcr.io/sanae6/smo-on
 
 To always check for and use the latest server version you can add `--pull=always` to the options.
 
+Alternatively there's a `docker-compose.yml` for [docker-compose](https://docs.docker.com/compose/) to simplify the command line options:
+```shell
+docker-compose  run  --rm  server
+```
+
 ## Commands
 
 Run `help` to get what commands are available in the server console.

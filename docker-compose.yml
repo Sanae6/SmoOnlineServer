@@ -1,0 +1,12 @@
+version: "3.9"
+
+volumes:
+  smoo-data:
+
+services:
+  server:
+    image: ghcr.io/sanae6/smo-online-server
+    ports:
+    - 1027:1027
+    volumes:
+    - smoo-data:/data/
