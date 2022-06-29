@@ -30,7 +30,7 @@ If you have systemd, you can use the existing systemd serivce.
 4. systemctl enable --now smo.service
 
 **Known issues**
-1. discord bot doesn't work, if you want to use a discord bot use screen or something that can keep the process running
+1. ~~discord bot doesn't work, if you want to use a discord bot use screen or something that can keep the process running~~ Fixed
 
 ## Commands
 
