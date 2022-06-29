@@ -8,6 +8,8 @@ StartLimitIntervalSec=0
 # User=user
 # change ExecStart to the path of the server file
 ExecStart="/home/user/SMOServer/Server"
+# change WorkingDirectory to the folder of your server
+# WorkingDirectory=/home/user/SMOServer/
 # ensure the service restarts after crashing
 Restart=always
 # amount of time to wait before restarting the service
