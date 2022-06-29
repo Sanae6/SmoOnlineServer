@@ -32,9 +32,6 @@ If you have systemd, you can use the existing systemd serivce.
 **Known issues**
 1. discord bot doesn't work, if you want to use a discord bot use screen or something that can keep the process running
 
-
-
-
 ## Commands
 
 Run `help` to get what commands are available in the server console.
