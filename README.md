@@ -20,6 +20,20 @@ dotnet run --project Server/Server.csproj -c Release
 ```
 If you ran `dotnet build` instead of `dotnet run`, you can find the binary at `Server/bin/net6.0/Release/Server.exe`
 
+## Run under systemd
+
+If you have systemd, you can use the existing systemd serivce.
+
+1. cp smo.serivce /etc/systemd/system/smo.service
+2. edit ExecStart to your path for the server executable
+3. chmod +x filepath to the server executable
+4. systemctl enable --now smo.service
+
+**Known issues**
+1. discord bot doesn't work, if you want to use a discord bot use screen or something that can keep the process running
+
+
+
 
 ## Commands
 
