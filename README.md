@@ -20,7 +20,7 @@ dotnet run --project Server/Server.csproj -c Release
 ```
 If you ran `dotnet build` instead of `dotnet run`, you can find the binary at `Server/bin/net6.0/Release/Server.exe`
 
-## Run under systemd
+## Running under systemd
 
 If you have systemd, you can use the existing systemd serivce.
 
