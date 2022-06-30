@@ -25,7 +25,7 @@ If you ran `dotnet build` instead of `dotnet run`, you can find the binary at `S
 If you have systemd, you can use the existing systemd serivce.
 ```
 1. cp smo.serivce /etc/systemd/system/smo.service
-2. edit ExecStart to your path for the server executable
+2. edit ExecStart to your path for the server executable and change WorkingDirectory to the server directory
 3. chmod +x filepath to the server executable
 4. systemctl enable --now smo.service
 ```
