@@ -20,6 +20,15 @@ dotnet run --project Server/Server.csproj -c Release
 ```
 If you ran `dotnet build` instead of `dotnet run`, you can find the binary at `Server/bin/net6.0/Release/Server.exe`
 
+## Running under systemd
+
+If you have systemd, you can use the existing systemd serivce.
+```shell
+cp smo.serivce /etc/systemd/system/smo.service
+# edit ExecStart to your path for the server executable and change WorkingDirectory to the server directory
+chmod +x filepath to the server executable
+systemctl enable --now smo.service
+```
 
 ## Commands
 
