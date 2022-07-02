@@ -16,9 +16,10 @@ DiscordBot bot = new DiscordBot();
 await bot.Run();
 
 server.ClientJoined += (c, _) => {
-    if (Settings.Instance.BanList.Enabled && (Settings.Instance.BanList.Players.Contains(c.Id) ||
-                                              Settings.Instance.BanList.IpAddresses.Contains(
-                                                  ((IPEndPoint) c.Socket!.RemoteEndPoint!).Address.ToString())))
+    if (Settings.Instance.BanList.Enabled
+        && (Settings.Instance.BanList.Players.Contains(c.Id)
+            || Settings.Instance.BanList.IpAddresses.Contains(
+                ((IPEndPoint) c.Socket!.RemoteEndPoint!).Address.ToString())))
         throw new Exception($"Banned player attempted join: {c.Name}");
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
@@ -125,8 +126,8 @@ server.PacketHandler = (c, p) => {
                                             && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
                                             && Settings.Instance.Flip.Players.Contains(c.Id): {
             playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
-            playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) *
-                                     Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
+            playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
+                                     * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
             server.Broadcast(playerPacket, c);
             return false;
         }
@@ -136,8 +137,8 @@ server.PacketHandler = (c, p) => {
             server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
                 if (Settings.Instance.Flip.Players.Contains(to.Id)) {
                     sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
-                    sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI)) *
-                                   Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
+                    sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
+                                   * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
                 }
 
                 to.Send(sp, from);
@@ -152,22 +153,28 @@ server.PacketHandler = (c, p) => {
 CommandHandler.RegisterCommand("rejoin", args => {
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    foreach (Client user in server.Clients.Where(c => c.Connected && args.Any(x => c.Name.StartsWith(x) ||
-                 (Guid.TryParse(x, out Guid result) && result == c.Id)))) {
+    Client[] clients = (args.Length == 1 && args[0] == "*"
+        ? server.Clients.Where(c =>
+            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
+        : server.Clients.Where(c => c.Connected)).ToArray();
+    foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         builder.Append(user.Name);
         user.Dispose();
         moreThanOne = true;
     }
 
-    return moreThanOne ? $"Caused {builder} to rejoin" : "Usage: rejoin <usernames...>";
+    return clients.Length > 0 ? $"Caused {builder} to rejoin" : "Usage: rejoin <usernames...>";
 });
 
 CommandHandler.RegisterCommand("crash", args => {
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    foreach (Client user in server.Clients.Where(c => c.Connected && args.Any(x => c.Name.StartsWith(x) ||
-                 (Guid.TryParse(x, out Guid result) && result == c.Id)))) {
+    Client[] clients = (args.Length == 1 && args[0] == "*"
+        ? server.Clients.Where(c =>
+            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
+        : server.Clients.Where(c => c.Connected)).ToArray();
+    foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
         builder.Append(user.Name);
@@ -182,14 +189,18 @@ CommandHandler.RegisterCommand("crash", args => {
         });
     }
 
-    return moreThanOne ? $"Crashed {builder}" : "Usage: crash <usernames...>";
+    return clients.Length > 0 ? $"Crashed {builder}" : "Usage: crash <usernames...>";
 });
 
 CommandHandler.RegisterCommand("ban", args => {
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    foreach (Client user in server.Clients.Where(c => c.Connected && args.Any(x => c.Name.StartsWith(x) ||
-                 (Guid.TryParse(x, out Guid result) && result == c.Id)))) {
+
+    Client[] clients = (args.Length == 1 && args[0] == "*"
+        ? server.Clients.Where(c =>
+            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
+        : server.Clients.Where(c => c.Connected)).ToArray();
+    foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
         builder.Append(user.Name);
@@ -207,7 +218,7 @@ CommandHandler.RegisterCommand("ban", args => {
         });
     }
 
-    if (moreThanOne) {
+    if (clients.Length > 0) {
         Settings.SaveSettings();
         return $"Banned {builder}.";
     }
@@ -228,16 +239,17 @@ CommandHandler.RegisterCommand("send", args => {
     }
 
     if (!stage.Contains("Stage") && !stage.Contains("Zone")) {
-        return "Invalid Stage Name!";
+        return "Invalid Stage Name! ```cap  ->  Cap Kingdom\ncascade  ->  Cascade Kingdom\nsand  ->  Sand Kingdom\nlake  ->  Lake Kingdom\nwooded  ->  Wooded Kingdom\ncloud  ->  Cloud Kingdom\nlost  ->  Lost Kingdom\nmetro  ->  Metro Kingdom\nsea  ->  Sea Kingdom\nsnow  ->  Snow Kingdom\nlunch  ->  Luncheon Kingdom\nruined  ->  Ruined Kingdom\nbowser  ->  Bowser's Kingdom\nmoon  ->  Moon Kingdom\nmush  ->  Mushroom Kingdom\ndark  ->  Dark Side\ndarker  ->  Darker Side```";
     }
 
     if (!sbyte.TryParse(args[2], out sbyte scenario) || scenario < -1)
         return $"Invalid scenario number {args[2]} (range: [-1 to 127])";
     Client[] players = args[3] == "*"
         ? server.Clients.Where(c => c.Connected).ToArray()
-        : server.Clients.Where(c => c.Connected && args[3..].Any(x => c.Name.StartsWith(x) ||
-                                                                      (Guid.TryParse(x, out Guid result) &&
-                                                                       result == c.Id))).ToArray();
+        : server.Clients.Where(c =>
+                c.Connected
+                && args[3..].Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
+            .ToArray();
     Parallel.ForEachAsync(players, async (c, _) => {
         await c.Send(new ChangeStagePacket {
             Stage = stage,
@@ -261,7 +273,7 @@ CommandHandler.RegisterCommand("sendall", args => {
     }
 
     if (!stage.Contains("Stage") && !stage.Contains("Zone")) {
-        return "Invalid Stage Name!";
+        return "Invalid Stage Name! ```cap  ->  Cap Kingdom\ncascade  ->  Cascade Kingdom\nsand  ->  Sand Kingdom\nlake  ->  Lake Kingdom\nwooded  ->  Wooded Kingdom\ncloud  ->  Cloud Kingdom\nlost  ->  Lost Kingdom\nmetro  ->  Metro Kingdom\nsea  ->  Sea Kingdom\nsnow  ->  Snow Kingdom\nlunch  ->  Luncheon Kingdom\nruined  ->  Ruined Kingdom\nbowser  ->  Bowser's Kingdom\nmoon  ->  Moon Kingdom\nmush  ->  Mushroom Kingdom\ndark  ->  Dark Side\ndarker  ->  Darker Side```";
     }
 
     Client[] players = server.Clients.Where(c => c.Connected).ToArray();
@@ -445,7 +457,7 @@ CommandHandler.RegisterCommand("shine", args => {
         case "clear" when args.Length == 1:
             shineBag.Clear();
             foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient =>
-                         (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
+                (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
 
             return "Cleared shine bags";
         case "sync" when args.Length == 1:
