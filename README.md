@@ -45,7 +45,20 @@ To always check for and use the latest server version you can add `--pull=always
 
 Alternatively there's a `docker-compose.yml` for [docker-compose](https://docs.docker.com/compose/) to simplify the command line options:
 ```shell
-docker-compose  run  --rm  server
+# update server
+docker-compose pull
+
+# start server
+docker-compose up -d
+
+# open the server cli
+docker attach `docker-compose ps -q` --sig-proxy=false
+
+# watch server logs
+docker-compose logs --tail=20 --follow
+
+# stop server
+docker-compose stop
 ```
 
 ## Commands
