@@ -18,8 +18,6 @@ FROM  mcr.microsoft.com/dotnet/runtime:6.0  as  runtime
 
 WORKDIR  /data/
 
-RUN  touch  /data/settings.json
-
 COPY  --from=build  /app/out/  /app/
 
 ENTRYPOINT  [ "dotnet", "/app/Server.dll" ]

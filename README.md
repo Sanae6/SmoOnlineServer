@@ -37,7 +37,8 @@ If you have [docker](https://docs.docker.com/) on your system, you can use the e
 That way you don't have to build this server yourself or manually handle executables.
 
 ```shell
-docker  run  --rm  -it  -p 1027:1027  -v smoo-data:/data/  ghcr.io/sanae6/smo-online-server
+docker  run  --rm  -it  -p 1027:1027  -v "/$PWD/data/://data/"  ghcr.io/sanae6/smo-online-server
+# on Windows, depending on the shell you're using, $PWD might not work. Use an absolute path instead.
 ```
 
 To always check for and use the latest server version you can add `--pull=always` to the options.
