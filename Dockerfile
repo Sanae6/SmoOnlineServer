@@ -16,16 +16,13 @@ RUN  dotnet  publish  ./Server/Server.csproj  -c Release  -o ./out/
 
 FROM  mcr.microsoft.com/dotnet/runtime:6.0  as  runtime
 
-WORKDIR  /app/
+WORKDIR  /data/
 
-RUN   mkdir   /data/               \
-  &&  touch   /data/settings.json  \
-  &&  ln  -s  /data/settings.json  \
-;
+RUN  touch  /data/settings.json
 
-COPY  --from=build  /app/out/  ./
+COPY  --from=build  /app/out/  /app/
 
-ENTRYPOINT  [ "dotnet", "Server.dll" ]
+ENTRYPOINT  [ "dotnet", "/app/Server.dll" ]
 
 EXPOSE  1027/tcp
 VOLUME  /data/
