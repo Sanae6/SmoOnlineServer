@@ -31,13 +31,7 @@ RUN  dotnet  publish  \
 ################################################################################
 ################################################################   runtime   ###
 
-FROM  debian:11-slim  as  runtime
-
-# Download & install additional runtime dependencies
-RUN   apt-get  update  \
-  &&  apt-get  install  -y  libicu67  \
-  &&  rm  -rf  /var/lib/apt/lists/*  \
-;
+FROM  mcr.microsoft.com/dotnet/runtime:6.0  as  runtime
 
 # Copy application binary from build stage
 COPY  --from=build  /app/out/  /app/
