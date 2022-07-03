@@ -45,7 +45,6 @@ jobs:
         labels: |
           org.opencontainers.image.licenses=UNLICENSED
     -
-      id  : qemu
       name: Set up QEMU
       uses: docker/setup-qemu-action@v2
       with:
