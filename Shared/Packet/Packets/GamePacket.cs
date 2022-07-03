@@ -12,7 +12,8 @@ public struct GamePacket : IPacket {
 
     public GamePacket() { }
 
-    public short Size => 0x42;
+    public short Size => 2 + StageSize;
+
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref Is2d);
         MemoryMarshal.Write(data[1..], ref ScenarioNum);

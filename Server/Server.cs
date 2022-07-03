@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using Shared;
 using Shared.Packet;
 using Shared.Packet.Packets;
@@ -79,10 +78,23 @@ public class Server {
             PacketSize = packet.Size
         };
         FillPacket(header, packet, memory.Memory);
+
+#if DEBUG
+        Guid senderId = sender?.Id ?? Guid.Empty;
+        string senderName = "?";
+        Client? client = FindExistingClient(senderId);
+        if (client != null)
+            senderName = client.Name;
+        PacketUtils.LogPacket(packet, $"{senderName} -> (all)");
+#endif
         await Broadcast(memory, sender);
     }
 
     public Task Broadcast<T>(T packet) where T : struct, IPacket {
+#if DEBUG
+        PacketUtils.LogPacket(packet, "BRDC");
+#endif
+
         return Task.WhenAll(Clients.Where(c => c.Connected).Select(async client => {
             IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
             PacketHeader header = new PacketHeader {
@@ -242,12 +254,18 @@ public class Server {
                             ClientName = other.Name
                         };
                         connectPacket.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..]);
+#if DEBUG
+                        PacketUtils.LogPacket(connectPacket, $"{client.Name} -> {other.Name}");
+#endif
                         await client.Send(tempBuffer.Memory[..(Constants.HeaderSize + connect.Size)], null);
                         if (other.CurrentCostume.HasValue) {
                             connectHeader.Type = PacketType.Costume;
                             connectHeader.PacketSize = other.CurrentCostume.Value.Size;
                             connectHeader.Serialize(tempBuffer.Memory.Span[..Constants.HeaderSize]);
                             other.CurrentCostume.Value.Serialize(tempBuffer.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + connectHeader.PacketSize)]);
+#if DEBUG
+                            PacketUtils.LogPacket((CostumePacket)other.CurrentCostume, $"{client.Name} -> {other.Name}");
+#endif
                             await client.Send(tempBuffer.Memory[..(Constants.HeaderSize + connectHeader.PacketSize)], null);
                         }
 
@@ -256,7 +274,7 @@ public class Server {
 
                     Logger.Info($"Client {client.Name} ({client.Id}/{socket.RemoteEndPoint}) connected.");
                 } else if (header.Id != client.Id && client.Id != Guid.Empty) {
-                    throw new Exception($"Client {client.Name} sent packet with invalid client id {header.Id} instead of {client.Id}");
+                    throw new Exception($"Client {client.Name} sent packet {header.Type} with invalid client id {header.Id} instead of {client.Id}");
                 }
 
                 if (header.Type == PacketType.Costume) {
@@ -270,6 +288,11 @@ public class Server {
                 try {
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + packet.Size)]);
+
+#if DEBUG
+                    PacketUtils.LogPacket(packet, $"{FindExistingClient(header.Id)!.Name} -> (server)");
+#endif
+
                     if (PacketHandler?.Invoke(client, packet) is false) {
                         memory.Dispose();
                         continue;
@@ -278,6 +301,12 @@ public class Server {
                 catch (Exception e) {
                     client.Logger.Error($"Packet handler warning: {e}");
                 }
+
+#if DEBUG
+                if (header.Type is not (PacketType.Player or PacketType.Cap)) {
+                    PacketUtils.LogPacketSame($"{client.Name} -> (all)");
+                }
+#endif
 
                 Broadcast(memory, client);
             }
