@@ -11,7 +11,7 @@ public struct PacketHeader : IPacket {
     public short PacketSize;
     public bool IsCheats;
 
-    public static short StaticSize => 20;
+    public static short StaticSize => 22;
     public short Size => StaticSize;
 
     public void Serialize(Span<byte> data) {
