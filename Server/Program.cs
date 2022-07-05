@@ -21,6 +21,11 @@ server.ClientJoined += (c, _) => {
             || Settings.Instance.BanList.IpAddresses.Contains(
                 ((IPEndPoint) c.Socket!.RemoteEndPoint!).Address.ToString())))
         throw new Exception($"Banned player attempted join: {c.Name}");
+	if (Settings.Instance.WhiteList.Enabled
+	    && !(Settings.Instance.WhiteList.Players.Contains(c.Id)
+		    || Settings.Instance.WhiteList.IpAddresses.Contains(
+			    ((IPEndPoint)c.Socket!.RemoteEndPoint!).Address.ToString())))
+		throw new Exception($"Non-Whitelisted player tried to join: {c.Name}");
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = (byte?) 0;
@@ -192,38 +197,43 @@ CommandHandler.RegisterCommand("crash", args => {
     return clients.Length > 0 ? $"Crashed {builder}" : "Usage: crash <usernames...>";
 });
 
-CommandHandler.RegisterCommand("ban", args => {
-    bool moreThanOne = false;
-    StringBuilder builder = new StringBuilder();
+CommandHandler.RegisterCommand("ban", args =>
+{
+	bool moreThanOne = false;
+	StringBuilder builder = new StringBuilder();
 
-    Client[] clients = (args.Length == 1 && args[0] == "*"
-        ? server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
-        : server.Clients.Where(c => c.Connected)).ToArray();
-    foreach (Client user in clients) {
-        if (moreThanOne) builder.Append(", ");
-        moreThanOne = true;
-        builder.Append(user.Name);
-        Task.Run(async () => {
-            await user.Send(new ChangeStagePacket {
-                Id = "$agogus/banned4lyfe",
-                Stage = "$ejected",
-                Scenario = 69,
-                SubScenarioType = 21 // invalid id
-            });
-            IPEndPoint? endpoint = (IPEndPoint?) user.Socket?.RemoteEndPoint;
-            Settings.Instance.BanList.Players.Add(user.Id);
-            if (endpoint != null) Settings.Instance.BanList.IpAddresses.Add(endpoint.ToString());
-            user.Dispose();
-        });
-    }
+	Client[] clients = (args.Length == 1 && args[0] == "*"
+		? server.Clients.Where(c =>
+			c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
+		: server.Clients.Where(c => c.Connected)).ToArray();
+	foreach (Client user in clients)
+	{
+		if (moreThanOne) builder.Append(", ");
+		moreThanOne = true;
+		builder.Append(user.Name);
+		Task.Run(async () =>
+		{
+			await user.Send(new ChangeStagePacket
+			{
+				Id = "$agogus/banned4lyfe",
+				Stage = "$ejected",
+				Scenario = 69,
+				SubScenarioType = 21 // invalid id
+			});
+			IPEndPoint? endpoint = (IPEndPoint?)user.Socket?.RemoteEndPoint;
+			Settings.Instance.BanList.Players.Add(user.Id);
+			if (endpoint != null) Settings.Instance.BanList.IpAddresses.Add(endpoint.ToString());
+			user.Dispose();
+		});
+	}
 
-    if (clients.Length > 0) {
-        Settings.SaveSettings();
-        return $"Banned {builder}.";
-    }
+	if (clients.Length > 0)
+	{
+		Settings.SaveSettings();
+		return $"Banned {builder}.";
+	}
 
-    return "Usage: ban <usernames...>";
+	return "Usage: ban <usernames...>";
 });
 
 CommandHandler.RegisterCommand("send", args => {

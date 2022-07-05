@@ -44,6 +44,7 @@ public class Settings {
     public FlipTable Flip { get; set; } = new FlipTable();
     public ScenarioTable Scenario { get; set; } = new ScenarioTable();
     public BannedPlayers BanList { get; set; } = new BannedPlayers();
+    public WhitelistedPlayers WhiteList { get; set;} = new WhitelistedPlayers();
     public DiscordTable Discord { get; set; } = new DiscordTable();
 
     public class ServerTable {
@@ -60,6 +61,12 @@ public class Settings {
         public bool Enabled { get; set; } = false;
         public List<Guid> Players { get; set; } = new List<Guid>();
         public List<string> IpAddresses { get; set; } = new List<string>();
+    }
+    
+    public class WhitelistedPlayers {
+        public bool Enabled { get; set; } = false;
+		public List<Guid> Players { get; set; } = new List<Guid>();
+		public List<string> IpAddresses { get; set; } = new List<string>();
     }
 
     public class FlipTable {
