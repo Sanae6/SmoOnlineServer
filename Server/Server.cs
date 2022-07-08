@@ -9,6 +9,7 @@ namespace Server;
 
 public class Server {
     public readonly List<Client> Clients = new List<Client>();
+    public IEnumerable<Client> ClientsConnected => Clients.Where(client => client.Metadata.ContainsKey("lastGamePacket") && client.Connected);
     public readonly Logger Logger = new Logger("Server");
     private readonly MemoryPool<byte> memoryPool = MemoryPool<byte>.Shared;
     public Func<Client, IPacket, bool>? PacketHandler = null!;
