@@ -10,7 +10,7 @@ public struct PacketHeader : IPacket {
     public PacketType Type;
     public short PacketSize;
 
-    public static short StaticSize => 22;
+	public static short StaticSize => 20;
     public short Size => StaticSize;
 
     public void Serialize(Span<byte> data) {
