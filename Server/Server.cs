@@ -176,7 +176,7 @@ public class Server {
                             goto disconnect;
                         }
 
-						bool firstConn = true;
+                        bool firstConn = false;
                         switch (connect.ConnectionType) {
                             case ConnectPacket.ConnectionTypes.FirstConnection: {
                                 firstConn = true;
