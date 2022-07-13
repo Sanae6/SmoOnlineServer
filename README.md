@@ -30,6 +30,12 @@ chmod +x filepath to the server executable
 systemctl enable --now smo.service
 ```
 
+## Running with Docker
+
+A Dockerfile is included if you want to run the server without installing `dotnet`, or if you are using a hosting
+environment with Docker support. See [deploy_to_fly_io.md](https://github.com/Sanae6/SmoOnlineServer/blob/master/docs/deploy_to_fly_io.md)
+for an easy way to run a server using the [Fly.io](https://www.fly.io) free tier.
+
 ## Commands
 
 Run `help` to get what commands are available in the server console.

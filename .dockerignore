@@ -1,0 +1,4 @@
+# Ignore any build artifacts that could interfere with the dotnet build happening
+# during Docker image creation.
+**/bin/
+**/obj/
