@@ -55,6 +55,8 @@ async Task S(string n, Guid otherId, Guid ownId) {
             Type = PacketType.Connect,
             Id = ownId,
             PacketSize = connect.Size,
+
+
         };
         IMemoryOwner<byte> connectOwner = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + connect.Size);
         // coolHeader.Serialize(connectOwner.Memory.Span[..Constants.HeaderSize]);

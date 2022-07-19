@@ -273,7 +273,7 @@ public class Server {
                         tempBuffer.Dispose();
                     });
 
-                    Logger.Info($"Client {client.Name} ({client.Id}/{socket.RemoteEndPoint}) connected.");
+					Logger.Info($"Client {client.Name} ({client.Id}/{socket.RemoteEndPoint}) connected.");
                 } else if (header.Id != client.Id && client.Id != Guid.Empty) {
                     throw new Exception($"Client {client.Name} sent packet {header.Type} with invalid client id {header.Id} instead of {client.Id}");
                 }
