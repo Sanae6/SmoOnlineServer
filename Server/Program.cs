@@ -127,9 +127,6 @@ server.PacketHandler = (c, p) => {
                     c.Metadata["speedrun"] = true;
                     ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
                     shineBag.Clear();
-                    Task.Run(async () => {
-                        await PersistShines();
-                    });
                     c.Logger.Info("Entered Cap on new save, preventing moon sync until Cascade");
                     break;
                 case "WaterfallWorldHomeStage":
@@ -573,6 +570,10 @@ CommandHandler.RegisterCommand("shine", args => {
             return $"Shines: {string.Join(", ", shineBag)}";
         case "clear" when args.Length == 1:
             shineBag.Clear();
+            Task.Run(async () => {
+                await PersistShines();
+            });
+
             foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient =>
                 (ConcurrentBag<int>)serverClient.Metadata["shineSync"]!)) playerBag?.Clear();
 
