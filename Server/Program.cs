@@ -49,6 +49,10 @@ async Task LoadShines()
 
         if (loadedShines is not null) shineBag = loadedShines;
     }
+    catch (FileNotFoundException)
+    {
+        // Ignore
+    }
     catch (Exception ex)
     {
         consoleLogger.Error(ex);
