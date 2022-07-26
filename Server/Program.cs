@@ -156,10 +156,10 @@ CommandHandler.RegisterCommand("rejoin", args => {
     }
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    Client[] clients = (args[0] == "*"
+    Client[] clients = (args[0].Trim() == "*"
         ? server.Clients.Where(c => c.Connected)
         : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
+            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
     foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         builder.Append(user.Name);
@@ -176,10 +176,10 @@ CommandHandler.RegisterCommand("crash", args => {
     }
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    Client[] clients = (args[0] == "*"
+    Client[] clients = (args[0].Trim() == "*"
         ? server.Clients.Where(c => c.Connected)
         : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
+            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
     foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
@@ -205,10 +205,10 @@ CommandHandler.RegisterCommand("ban", args => {
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
 
-    Client[] clients = (args[0] == "*"
+    Client[] clients = (args[0].Trim() == "*"
         ? server.Clients.Where(c => c.Connected)
         : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
+            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
     foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
