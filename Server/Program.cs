@@ -197,12 +197,15 @@ server.PacketHandler = (c, p) => {
 };
 
 CommandHandler.RegisterCommand("rejoin", args => {
+    if (args.Length  == 0) {
+        return "Usage: rejoin <* | usernames...>";
+    }
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    Client[] clients = (args.Length == 1 && args[0] == "*"
-        ? server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
-        : server.Clients.Where(c => c.Connected)).ToArray();
+    Client[] clients = (args[0] == "*"
+        ? server.Clients.Where(c => c.Connected)
+        : server.Clients.Where(c =>
+            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
     foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         builder.Append(user.Name);
@@ -214,12 +217,15 @@ CommandHandler.RegisterCommand("rejoin", args => {
 });
 
 CommandHandler.RegisterCommand("crash", args => {
+    if (args.Length  == 0) {
+        return "Usage: crash <* | usernames...>";
+    }
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
-    Client[] clients = (args.Length == 1 && args[0] == "*"
-        ? server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
-        : server.Clients.Where(c => c.Connected)).ToArray();
+    Client[] clients = (args[0] == "*"
+        ? server.Clients.Where(c => c.Connected)
+        : server.Clients.Where(c =>
+            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
     foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
@@ -239,13 +245,16 @@ CommandHandler.RegisterCommand("crash", args => {
 });
 
 CommandHandler.RegisterCommand("ban", args => {
+    if (args.Length == 0) {
+        return "Usage: ban <* | usernames...>";
+    }
     bool moreThanOne = false;
     StringBuilder builder = new StringBuilder();
 
-    Client[] clients = (args.Length == 1 && args[0] == "*"
-        ? server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))
-        : server.Clients.Where(c => c.Connected)).ToArray();
+    Client[] clients = (args[0] == "*"
+        ? server.Clients.Where(c => c.Connected)
+        : server.Clients.Where(c =>
+            c.Connected && args.Any(x => c.Name.StartsWith(x) || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
     foreach (Client user in clients) {
         if (moreThanOne) builder.Append(", ");
         moreThanOne = true;
