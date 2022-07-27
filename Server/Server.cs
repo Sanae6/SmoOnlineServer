@@ -170,7 +170,6 @@ public class Server {
                     ConnectPacket connect = new ConnectPacket();
                     connect.Deserialize(memory.Memory.Span[packetRange]);
                     lock (Clients) {
-                        client.Name = connect.ClientName;
                         if (Clients.Count(x => x.Connected) == Settings.Instance.Server.MaxPlayers) {
                             client.Logger.Error($"Turned away as server is at max clients");
                             memory.Dispose();
@@ -212,6 +211,7 @@ public class Server {
                                 throw new Exception($"Invalid connection type {connect.ConnectionType}");
                         }
 
+                        client.Name = connect.ClientName;
                         client.Connected = true;
                         if (firstConn) {
                             // do any cleanup required when it comes to new clients
