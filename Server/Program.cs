@@ -1,8 +1,7 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Numerics;
 using System.Text;
-using System.Text.Json;
 using Server;
 using Shared;
 using Shared.Packet.Packets;
@@ -15,47 +14,6 @@ Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
 DiscordBot bot = new DiscordBot();
 await bot.Run();
-
-async Task PersistShines()
-{
-    if (!Settings.Instance.PersistShines.Enabled)
-    {
-        return;
-    }
-
-    try
-    {
-        string shineJson = JsonSerializer.Serialize(shineBag);
-        await File.WriteAllTextAsync(Settings.Instance.PersistShines.Filename, shineJson);
-    }
-    catch (Exception ex)
-    {
-        consoleLogger.Error(ex);
-    }
-}
-
-async Task LoadShines()
-{
-    if (!Settings.Instance.PersistShines.Enabled)
-    {
-        return;
-    }
-
-    try
-    {
-        string shineJson = await File.ReadAllTextAsync(Settings.Instance.PersistShines.Filename);
-        var loadedShines = JsonSerializer.Deserialize<HashSet<int>>(shineJson);
-
-        if (loadedShines is not null) shineBag = loadedShines;
-    }
-    catch (Exception ex)
-    {
-        consoleLogger.Error(ex);
-    }
-}
-
-// Load shines table from file
-await LoadShines();
 
 server.ClientJoined += (c, _) => {
     if (Settings.Instance.BanList.Enabled
@@ -94,7 +52,6 @@ async Task ClientSyncShineBag(Client client) {
 
 async void SyncShineBag() {
     try {
-        await PersistShines();
         await Parallel.ForEachAsync(server.Clients.ToArray(), async (client, _) => await ClientSyncShineBag(client));
     } catch {
         // errors that can happen shines change will crash the server :)
@@ -121,9 +78,6 @@ server.PacketHandler = (c, p) => {
                     c.Metadata["speedrun"] = true;
                     ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
                     shineBag.Clear();
-                    Task.Run(async () => {
-                        await PersistShines();
-                    });
                     c.Logger.Info("Entered Cap on new save, preventing moon sync until Cascade");
                     break;
                 case "WaterfallWorldHomeStage":
@@ -196,40 +150,89 @@ server.PacketHandler = (c, p) => {
     return true;
 };
 
-CommandHandler.RegisterCommand("rejoin", args => {
-    if (args.Length  == 0) {
-        return "Usage: rejoin <* | usernames...>";
+(List<string> failToFind, List<Client> toActUpon, List<(string arg, IEnumerable<string> amb)> ambig) MultiUserCommandHelper(string[] args) {
+    List<string> failToFind = new();
+    List<Client> toActUpon;
+    List<(string arg, IEnumerable<string> amb)> ambig = new();
+    if (args[0] == "*")
+        toActUpon = new(server.Clients.Where(c => c.Connected));
+    else {
+        toActUpon = args[0] == "!*" ? new(server.Clients.Where(c => c.Connected)) : new();
+        for (int i = (args[0] == "!*" ? 1 : 0); i < args.Length; i++) {
+            string arg = args[i];
+            IEnumerable<Client> search = server.Clients.Where(c => c.Connected &&
+                (c.Name.ToLower().StartsWith(arg.ToLower()) || (Guid.TryParse(arg, out Guid res) && res == c.Id)));
+            if (!search.Any())
+                failToFind.Add(arg.ToLower()); //none found
+            else if (search.Count() > 1) {
+                Client? exact = search.FirstOrDefault(x => x.Name == arg);
+                if (!ReferenceEquals(exact, null)) {
+                    //even though multiple matches, since exact match, it isn't ambiguous
+                    if (args[0] == "!*")
+                        toActUpon.Remove(exact);
+                    else
+                        toActUpon.Add(exact);
+                }
+                else {
+                    ambig.Add((arg.ToLower(), search.Select(x => x.Name))); //more than one match
+                    foreach (var rem in search.ToList()) //need copy because can't remove from list while iterating over it
+                        toActUpon.Remove(rem);
+                }
+            }
+            else {
+                //only one match, so autocomplete
+                if (args[0] == "!*")
+                    toActUpon.Remove(search.First());
+                else
+                    toActUpon.Add(search.First());
+            }
+        }
     }
-    bool moreThanOne = false;
-    StringBuilder builder = new StringBuilder();
-    Client[] clients = (args[0].Trim() == "*"
-        ? server.Clients.Where(c => c.Connected)
-        : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
-    foreach (Client user in clients) {
-        if (moreThanOne) builder.Append(", ");
-        builder.Append(user.Name);
-        user.Dispose();
-        moreThanOne = true;
+    return (failToFind, toActUpon, ambig);
+}
+
+CommandHandler.RegisterCommand("rejoin", args => {
+    if (args.Length == 0) {
+        return "Usage: rejoin <* | !* (usernames to not rejoin...) | (usernames to rejoin...)>";
     }
 
-    return clients.Length > 0 ? $"Caused {builder} to rejoin" : "Usage: rejoin <usernames...>";
+    var res = MultiUserCommandHelper(args);
+
+    StringBuilder sb = new StringBuilder();
+    sb.Append(res.toActUpon.Count > 0 ? "Crashed: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) + "\n" : "");
+    sb.Append(res.failToFind.Count > 0 ? "Failed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) + "\n" : "");
+    if (res.ambig.Count > 0) {
+        res.ambig.ForEach(x => {
+            sb.Append($"Ambiguous for {x.arg}: {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}\n");
+        });
+        sb.Remove(sb.Length - 1, 1); //remove extra nl
+    }
+
+    foreach (Client user in res.toActUpon) {
+        user.Dispose();
+    }
+
+    return sb.ToString();
 });
 
 CommandHandler.RegisterCommand("crash", args => {
-    if (args.Length  == 0) {
-        return "Usage: crash <* | usernames...>";
+    if (args.Length == 0) {
+        return "Usage: crash <* | !* (usernames to not crash...) | (usernames to crash...)>";
     }
-    bool moreThanOne = false;
-    StringBuilder builder = new StringBuilder();
-    Client[] clients = (args[0].Trim() == "*"
-        ? server.Clients.Where(c => c.Connected)
-        : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
-    foreach (Client user in clients) {
-        if (moreThanOne) builder.Append(", ");
-        moreThanOne = true;
-        builder.Append(user.Name);
+
+    var res = MultiUserCommandHelper(args);
+
+    StringBuilder sb = new StringBuilder();
+    sb.Append(res.toActUpon.Count > 0 ? "Crashed: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) + "\n" : "");
+    sb.Append(res.failToFind.Count > 0 ? "Failed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) + "\n" : "");
+    if (res.ambig.Count > 0) {
+        res.ambig.ForEach(x => {
+            sb.Append($"Ambiguous for {x.arg}: {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}\n");
+        });
+        sb.Remove(sb.Length - 1, 1); //remove extra nl
+    }
+
+    foreach (Client user in res.toActUpon) {
         Task.Run(async () => {
             await user.Send(new ChangeStagePacket {
                 Id = "$among$us/SubArea",
@@ -241,24 +244,27 @@ CommandHandler.RegisterCommand("crash", args => {
         });
     }
 
-    return clients.Length > 0 ? $"Crashed {builder}" : "Usage: crash <usernames...>";
+    return sb.ToString();
 });
 
 CommandHandler.RegisterCommand("ban", args => {
     if (args.Length == 0) {
-        return "Usage: ban <* | usernames...>";
+        return "Usage: ban <* | !* (usernames to not ban...) | (usernames to ban...)>";
     }
-    bool moreThanOne = false;
-    StringBuilder builder = new StringBuilder();
 
-    Client[] clients = (args[0].Trim() == "*"
-        ? server.Clients.Where(c => c.Connected)
-        : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
-    foreach (Client user in clients) {
-        if (moreThanOne) builder.Append(", ");
-        moreThanOne = true;
-        builder.Append(user.Name);
+    var res = MultiUserCommandHelper(args);
+
+    StringBuilder sb = new StringBuilder();
+    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) + "\n" : "");
+    sb.Append(res.failToFind.Count > 0 ? "Failed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) + "\n" : "");
+    if (res.ambig.Count > 0) {
+        res.ambig.ForEach(x => {
+            sb.Append($"Ambiguous for {x.arg}: {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}\n");
+        });
+        sb.Remove(sb.Length - 1, 1); //remove extra nl
+    }
+
+    foreach (Client user in res.toActUpon) {
         Task.Run(async () => {
             await user.Send(new ChangeStagePacket {
                 Id = "$agogus/banned4lyfe",
@@ -273,12 +279,8 @@ CommandHandler.RegisterCommand("ban", args => {
         });
     }
 
-    if (clients.Length > 0) {
-        Settings.SaveSettings();
-        return $"Banned {builder}.";
-    }
-
-    return "Usage: ban <usernames...>";
+    Settings.SaveSettings();
+    return sb.ToString();
 });
 
 CommandHandler.RegisterCommand("send", args => {
