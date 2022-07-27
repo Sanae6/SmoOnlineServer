@@ -2,6 +2,7 @@
 using System.Net;
 using System.Numerics;
 using System.Text;
+using System.Text.Json;
 using Server;
 using Shared;
 using Shared.Packet.Packets;
@@ -14,6 +15,47 @@ Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
 DiscordBot bot = new DiscordBot();
 await bot.Run();
+
+async Task PersistShines()
+{
+    if (!Settings.Instance.PersistShines.Enabled)
+    {
+        return;
+    }
+
+    try
+    {
+        string shineJson = JsonSerializer.Serialize(shineBag);
+        await File.WriteAllTextAsync(Settings.Instance.PersistShines.Filename, shineJson);
+    }
+    catch (Exception ex)
+    {
+        consoleLogger.Error(ex);
+    }
+}
+
+async Task LoadShines()
+{
+    if (!Settings.Instance.PersistShines.Enabled)
+    {
+        return;
+    }
+
+    try
+    {
+        string shineJson = await File.ReadAllTextAsync(Settings.Instance.PersistShines.Filename);
+        var loadedShines = JsonSerializer.Deserialize<HashSet<int>>(shineJson);
+
+        if (loadedShines is not null) shineBag = loadedShines;
+    }
+    catch (Exception ex)
+    {
+        consoleLogger.Error(ex);
+    }
+}
+
+// Load shines table from file
+await LoadShines();
 
 server.ClientJoined += (c, _) => {
     if (Settings.Instance.BanList.Enabled
@@ -52,6 +94,7 @@ async Task ClientSyncShineBag(Client client) {
 
 async void SyncShineBag() {
     try {
+        await PersistShines();
         await Parallel.ForEachAsync(server.Clients.ToArray(), async (client, _) => await ClientSyncShineBag(client));
     } catch {
         // errors that can happen shines change will crash the server :)
@@ -78,6 +121,9 @@ server.PacketHandler = (c, p) => {
                     c.Metadata["speedrun"] = true;
                     ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
                     shineBag.Clear();
+                    Task.Run(async () => {
+                        await PersistShines();
+                    });
                     c.Logger.Info("Entered Cap on new save, preventing moon sync until Cascade");
                     break;
                 case "WaterfallWorldHomeStage":
