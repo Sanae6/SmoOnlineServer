@@ -55,6 +55,7 @@ public class Server {
             }
 
             Logger.Info("Server closed");
+            Console.WriteLine("\n\n\n"); //for the sake of the restart command.
         }
     }
 

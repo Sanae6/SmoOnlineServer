@@ -542,6 +542,26 @@ CommandHandler.RegisterCommand("loadsettings", _ => {
     return "Loaded settings.json";
 });
 
+CommandHandler.RegisterCommand("restartserver", args =>
+{
+    if (args.Length != 0)
+    {
+        return "Usage: restartserver (no arguments)";
+    }
+    else
+    {
+        consoleLogger.Info("Received restartserver command");
+        string? path = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
+        const string unableToStartMsg = "Unable to ascertain the executable location, you'll need to re-run the server manually.";
+        if (path != null)
+            Console.WriteLine($"Running: {System.Diagnostics.Process.Start(path)?.Id.ToString() ?? unableToStartMsg}");
+        else
+            consoleLogger.Info(unableToStartMsg);
+        cts.Cancel();
+        return "restarting...";
+    }
+});
+
 Console.CancelKeyPress += (_, e) => {
     e.Cancel = true;
     consoleLogger.Info("Received Ctrl+C");
