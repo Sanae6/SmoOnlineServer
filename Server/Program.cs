@@ -141,7 +141,10 @@ server.PacketHandler = (c, p) => {
             if (Settings.Instance.Scenario.MergeEnabled) {
                 server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
                     gp.ScenarioNum = (byte?) to.Metadata["scenario"] ?? 200;
-                    to.Send(gp, from);
+#pragma warning disable CS4014
+                    to.Send(gp, from)
+                        .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
                 });
                 return false;
             }
@@ -155,12 +158,14 @@ server.PacketHandler = (c, p) => {
             break;
         }
         case CostumePacket:
-            ClientSyncShineBag(c);
+#pragma warning disable CS4014
+            ClientSyncShineBag(c); //no point logging since entire def has try/catch
+#pragma warning restore CS4014
             c.Metadata["loadedSave"] = true;
             break;
         case ShinePacket shinePacket: {
             if (c.Metadata["loadedSave"] is false) break;
-            ConcurrentBag<int> playerBag = (ConcurrentBag<int>) c.Metadata["shineSync"];
+            ConcurrentBag<int> playerBag = (ConcurrentBag<int>)c.Metadata["shineSync"]!;
             shineBag.Add(shinePacket.ShineId);
             if (playerBag.Contains(shinePacket.ShineId)) break;
             c.Logger.Info($"Got moon {shinePacket.ShineId}");
@@ -171,10 +176,13 @@ server.PacketHandler = (c, p) => {
         case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
                                             && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
                                             && Settings.Instance.Flip.Players.Contains(c.Id): {
-            playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
+            playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]!);
             playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
                                      * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
-            server.Broadcast(playerPacket, c);
+#pragma warning disable CS4014
+            server.Broadcast(playerPacket, c)
+                .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
             return false;
         }
         case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
@@ -182,12 +190,14 @@ server.PacketHandler = (c, p) => {
                                             && !Settings.Instance.Flip.Players.Contains(c.Id): {
             server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
                 if (Settings.Instance.Flip.Players.Contains(to.Id)) {
-                    sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
+                    sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]!);
                     sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
                                    * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
                 }
-
-                to.Send(sp, from);
+#pragma warning disable CS4014
+                to.Send(sp, from)
+                .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
             });
             return false;
         }
@@ -512,7 +522,7 @@ CommandHandler.RegisterCommand("shine", args => {
         case "clear" when args.Length == 1:
             shineBag.Clear();
             foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient =>
-                (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
+                (ConcurrentBag<int>)serverClient.Metadata["shineSync"]!)) playerBag?.Clear();
 
             return "Cleared shine bags";
         case "sync" when args.Length == 1:
@@ -553,6 +563,7 @@ CommandHandler.RegisterCommandAliases(_ => {
     return "Shutting down";
 }, "exit", "quit", "q");
 
+#pragma warning disable CS4014
 Task.Run(() => {
     consoleLogger.Info("Run help command for valid commands.");
     while (true) {
@@ -563,6 +574,7 @@ Task.Run(() => {
             }
         }
     }
-});
+}).ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
 
 await listenTask;

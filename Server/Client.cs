@@ -20,7 +20,7 @@ public class Client : IDisposable {
 
     public Guid Id;
     public Socket? Socket;
-    public Server Server { get; init; }
+    public Server Server { get; init; } = null!; //init'd in object initializer
     public Logger Logger { get; }
 
     public Client(Socket socket) {
@@ -71,5 +71,16 @@ public class Client : IDisposable {
 
     public static bool operator !=(Client? left, Client? right) {
         return !(left == right);
+    }
+
+    public override bool Equals(object? obj) {
+        if (obj is Client)
+            return this == (Client)obj;
+        else
+            return false;
+    }
+
+    public override int GetHashCode() {
+        return Id.GetHashCode(); //relies upon same info as == operator.
     }
 }
