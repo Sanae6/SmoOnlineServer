@@ -206,9 +206,9 @@ server.PacketHandler = (c, p) => {
     return true;
 };
 
-(List<string> failToFind, List<Client> toActUpon, List<(string arg, IEnumerable<string> amb)> ambig) MultiUserCommandHelper(string[] args) {
-    List<string> failToFind = new();
-    List<Client> toActUpon;
+(HashSet<string> failToFind, HashSet<Client> toActUpon, List<(string arg, IEnumerable<string> amb)> ambig) MultiUserCommandHelper(string[] args) {
+    HashSet<string> failToFind = new();
+    HashSet<Client> toActUpon;
     List<(string arg, IEnumerable<string> amb)> ambig = new();
     if (args[0] == "*")
         toActUpon = new(server.Clients.Where(c => c.Connected));
@@ -230,7 +230,8 @@ server.PacketHandler = (c, p) => {
                         toActUpon.Add(exact);
                 }
                 else {
-                    ambig.Add((arg, search.Select(x => x.Name))); //more than one match
+                    if (!ambig.Any(x => x.arg == arg))
+                        ambig.Add((arg, search.Select(x => x.Name))); //more than one match
                     foreach (var rem in search.ToList()) //need copy because can't remove from list while iterating over it
                         toActUpon.Remove(rem);
                 }
@@ -255,13 +256,12 @@ CommandHandler.RegisterCommand("rejoin", args => {
     var res = MultiUserCommandHelper(args);
 
     StringBuilder sb = new StringBuilder();
-    sb.Append(res.toActUpon.Count > 0 ? "Crashed: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) + "\n" : "");
-    sb.Append(res.failToFind.Count > 0 ? "Failed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) + "\n" : "");
+    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
     if (res.ambig.Count > 0) {
         res.ambig.ForEach(x => {
-            sb.Append($"Ambiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}\n");
+            sb.Append($"\nAmbiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}");
         });
-        sb.Remove(sb.Length - 1, 1); //remove extra nl
     }
 
     foreach (Client user in res.toActUpon) {
@@ -279,13 +279,12 @@ CommandHandler.RegisterCommand("crash", args => {
     var res = MultiUserCommandHelper(args);
 
     StringBuilder sb = new StringBuilder();
-    sb.Append(res.toActUpon.Count > 0 ? "Crashed: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) + "\n" : "");
-    sb.Append(res.failToFind.Count > 0 ? "Failed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) + "\n" : "");
+    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
     if (res.ambig.Count > 0) {
         res.ambig.ForEach(x => {
-            sb.Append($"Ambiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}\n");
+            sb.Append($"\nAmbiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}");
         });
-        sb.Remove(sb.Length - 1, 1); //remove extra nl
     }
 
     foreach (Client user in res.toActUpon) {
@@ -309,6 +308,8 @@ CommandHandler.RegisterCommand("ban", args => {
     }
 
     #region Testing
+    //server.Clients.Clear();
+
     //void TestAddClients()
     //{
     //    Client c1 = new Client(null!);
@@ -348,13 +349,12 @@ CommandHandler.RegisterCommand("ban", args => {
     var res = MultiUserCommandHelper(args);
 
     StringBuilder sb = new StringBuilder();
-    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) + "\n" : "");
-    sb.Append(res.failToFind.Count > 0 ? "Failed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) + "\n" : "");
+    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
     if (res.ambig.Count > 0) {
         res.ambig.ForEach(x => {
-            sb.Append($"Ambiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}\n");
+            sb.Append($"\nAmbiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}");
         });
-        sb.Remove(sb.Length - 1, 1); //remove extra nl
     }
 
     foreach (Client user in res.toActUpon) {
