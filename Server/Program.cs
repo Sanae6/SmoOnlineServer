@@ -297,45 +297,6 @@ CommandHandler.RegisterCommand("ban", args => {
         return "Usage: ban <* | !* (usernames to not ban...) | (usernames to ban...)>";
     }
 
-    #region Testing
-    //server.Clients.Clear();
-
-    //void TestAddClients()
-    //{
-    //    Client c1 = new Client(null!);
-    //    c1.Id = new Guid("00000000000000000000000000000000");
-    //    c1.Connected = true;
-    //    c1.Name = "Moo";
-    //    server.Clients.Add(c1);
-
-    //    Client c2 = new Client(null!);
-    //    c2.Id = new Guid("00000000000000000000000000000001");
-    //    c2.Connected = true;
-    //    c2.Name = "Moomoss";
-    //    server.Clients.Add(c2);
-
-    //    Client c3 = new Client(null!);
-    //    c3.Id = new Guid("00000000000000000000000000000002");
-    //    c3.Connected = true;
-    //    c3.Name = "mo";
-    //    server.Clients.Add(c3);
-
-    //    Client c4 = new Client(null!);
-    //    c4.Id = new Guid("00000000000000000000000000000003");
-    //    c4.Connected = true;
-    //    c4.Name = "Bar";
-    //    server.Clients.Add(c4);
-
-    //    Client c5 = new Client(null!);
-    //    c5.Id = new Guid("00000000000000000000000000000004");
-    //    c5.Connected = true;
-    //    c5.Name = "Foo";
-    //    server.Clients.Add(c5);
-    //}
-
-    //TestAddClients();
-    #endregion
-
     var res = MultiUserCommandHelper(args);
 
     StringBuilder sb = new StringBuilder();
