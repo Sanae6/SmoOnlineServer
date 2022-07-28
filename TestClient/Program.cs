@@ -21,7 +21,7 @@ PacketType[] reboundPackets = {
     // PacketType.Shine
 };
 
-//string lastCapture = ""; //not referenced anywhere
+//string lastCapture = ""; //not referenced
 List<TcpClient> clients = new List<TcpClient>();
 
 async Task S(string n, Guid otherId, Guid ownId) {
