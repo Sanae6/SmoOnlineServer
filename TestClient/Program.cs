@@ -21,7 +21,7 @@ PacketType[] reboundPackets = {
     // PacketType.Shine
 };
 
-string lastCapture = "";
+//string lastCapture = ""; //not referenced anywhere
 List<TcpClient> clients = new List<TcpClient>();
 
 async Task S(string n, Guid otherId, Guid ownId) {
@@ -77,13 +77,15 @@ async Task S(string n, Guid otherId, Guid ownId) {
             continue;
         }
         if (type == PacketType.Player) {
+#pragma warning disable CS4014
             Task.Run(async () => {
                 await Task.Delay(1000);
                 header.Id = ownId;
                 MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);
                 await stream.WriteAsync(owner.Memory[..(Constants.HeaderSize + header.PacketSize)]);
                 owner.Dispose();
-            });
+            }).ContinueWith(x => { if (x.Exception != null) { logger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
             continue;
         }
         header.Id = ownId;
