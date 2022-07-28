@@ -554,7 +554,7 @@ CommandHandler.RegisterCommand("restartserver", args =>
         consoleLogger.Info("Received restartserver command");
         restartRequested = true;
         cts.Cancel();
-        return "restarting...";
+        return "Restarting...";
     }
 });
 
@@ -589,7 +589,7 @@ if (restartRequested) //need to do this here because this needs to happen after 
     const string unableToStartMsg = "Unable to ascertain the executable location, you'll need to re-run the server manually.";
     if (path != null) //path is probably just "Server", but in the context of the assembly, that's all you need to restart it.
     {
-        Console.WriteLine($"Running (pid): {System.Diagnostics.Process.Start(path)?.Id.ToString() ?? unableToStartMsg}");
+        Console.WriteLine($"Server Running on (pid): {System.Diagnostics.Process.Start(path)?.Id.ToString() ?? unableToStartMsg}");
     }
     else
         consoleLogger.Info(unableToStartMsg);
