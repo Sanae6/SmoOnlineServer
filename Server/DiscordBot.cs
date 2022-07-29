@@ -109,10 +109,6 @@ public class DiscordBot {
                         foreach (string mesg in SplitMessage(resp))
                             await msg.RespondAsync(mesg);
                     }
-                    else
-                    {
-                        await msg.RespondAsync("Couldn't determine a response for the query.");
-                    }
                 } catch (Exception e) {
                     Logger.Error(e);
                 }
