@@ -46,11 +46,21 @@ public class DiscordBot {
         }
     }
 
+    private static List<string> SplitMessage(string message, int maxSizePerElem = 2000)
+    {
+        List<string> result = new List<string>();
+        for (int i = 0; i < message.Length; i += maxSizePerElem) 
+        {
+            result.Add(message.Substring(i, message.Length - i < maxSizePerElem ? message.Length - i : maxSizePerElem));
+        }
+        return result;
+    }
+
     private async void Log(string source, string level, string text, ConsoleColor _) {
         try {
             if (DiscordClient != null && LogChannel != null) {
-                await DiscordClient.SendMessageAsync(LogChannel,
-                    $"```{Logger.PrefixNewLines(text, $"{level} [{source}]")}```");
+                foreach (string mesg in SplitMessage(Logger.PrefixNewLines(text, $"{level} [{source}]"), 1994)) //room for 6 '`'
+                    await DiscordClient.SendMessageAsync(LogChannel, $"```{mesg}```");
             }
         } catch (Exception e) {
             // don't log again, it'll just stack overflow the server!
@@ -83,18 +93,25 @@ public class DiscordBot {
                 if (args.Author.IsCurrent) return;
                 try {
                     DiscordMessage msg = args.Message;
+                    string? resp = null;
                     if (string.IsNullOrEmpty(Prefix)) {
                         await msg.Channel.TriggerTypingAsync();
-                        await msg.RespondAsync(string.Join('\n',
-                            CommandHandler.GetResult(msg.Content).ReturnStrings));
+                        resp = string.Join('\n', CommandHandler.GetResult(msg.Content).ReturnStrings);
                     } else if (msg.Content.StartsWith(Prefix)) {
                         await msg.Channel.TriggerTypingAsync();
-                        await msg.RespondAsync(string.Join('\n',
-                            CommandHandler.GetResult(msg.Content[Prefix.Length..]).ReturnStrings));
+                        resp = string.Join('\n', CommandHandler.GetResult(msg.Content[Prefix.Length..]).ReturnStrings);
                     } else if (msg.Content.StartsWith(mentionPrefix)) {
                         await msg.Channel.TriggerTypingAsync();
-                        await msg.RespondAsync(string.Join('\n',
-                            CommandHandler.GetResult(msg.Content[mentionPrefix.Length..]).ReturnStrings));
+                        resp = string.Join('\n', CommandHandler.GetResult(msg.Content[mentionPrefix.Length..]).ReturnStrings);
+                    }
+                    if (resp != null)
+                    {
+                        foreach (string mesg in SplitMessage(resp))
+                            await msg.RespondAsync(mesg);
+                    }
+                    else
+                    {
+                        await msg.RespondAsync("Couldn't determine a response for the query.");
                     }
                 } catch (Exception e) {
                     Logger.Error(e);

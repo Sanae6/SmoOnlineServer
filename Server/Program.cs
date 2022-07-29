@@ -196,6 +196,12 @@ server.PacketHandler = (c, p) => {
     return true;
 };
 
+#region Testing
+//CommandHandler.RegisterCommand("testreallylongcommand", args => {
+//    return new string('a', 7000);
+//});
+#endregion
+
 CommandHandler.RegisterCommand("rejoin", args => {
     if (args.Length  == 0) {
         return "Usage: rejoin <* | usernames...>";
