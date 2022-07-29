@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Numerics;
 using System.Text;
@@ -11,6 +11,7 @@ using Timer = System.Timers.Timer;
 Server.Server server = new Server.Server();
 HashSet<int> shineBag = new HashSet<int>();
 CancellationTokenSource cts = new CancellationTokenSource();
+bool restartRequested = false;
 Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
 DiscordBot bot = new DiscordBot();
@@ -141,7 +142,10 @@ server.PacketHandler = (c, p) => {
             if (Settings.Instance.Scenario.MergeEnabled) {
                 server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
                     gp.ScenarioNum = (byte?) to.Metadata["scenario"] ?? 200;
-                    to.Send(gp, from);
+#pragma warning disable CS4014
+                    to.Send(gp, from)
+                        .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
                 });
                 return false;
             }
@@ -155,12 +159,14 @@ server.PacketHandler = (c, p) => {
             break;
         }
         case CostumePacket:
-            ClientSyncShineBag(c);
+#pragma warning disable CS4014
+            ClientSyncShineBag(c); //no point logging since entire def has try/catch
+#pragma warning restore CS4014
             c.Metadata["loadedSave"] = true;
             break;
         case ShinePacket shinePacket: {
             if (c.Metadata["loadedSave"] is false) break;
-            ConcurrentBag<int> playerBag = (ConcurrentBag<int>) c.Metadata["shineSync"];
+            ConcurrentBag<int> playerBag = (ConcurrentBag<int>)c.Metadata["shineSync"]!;
             shineBag.Add(shinePacket.ShineId);
             if (playerBag.Contains(shinePacket.ShineId)) break;
             c.Logger.Info($"Got moon {shinePacket.ShineId}");
@@ -171,10 +177,13 @@ server.PacketHandler = (c, p) => {
         case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
                                             && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
                                             && Settings.Instance.Flip.Players.Contains(c.Id): {
-            playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
+            playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]!);
             playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
                                      * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
-            server.Broadcast(playerPacket, c);
+#pragma warning disable CS4014
+            server.Broadcast(playerPacket, c)
+                .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
             return false;
         }
         case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
@@ -182,12 +191,14 @@ server.PacketHandler = (c, p) => {
                                             && !Settings.Instance.Flip.Players.Contains(c.Id): {
             server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
                 if (Settings.Instance.Flip.Players.Contains(to.Id)) {
-                    sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]);
+                    sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]!);
                     sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
                                    * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
                 }
-
-                to.Send(sp, from);
+#pragma warning disable CS4014
+                to.Send(sp, from)
+                .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
             });
             return false;
         }
@@ -196,40 +207,88 @@ server.PacketHandler = (c, p) => {
     return true;
 };
 
-CommandHandler.RegisterCommand("rejoin", args => {
-    if (args.Length  == 0) {
-        return "Usage: rejoin <* | usernames...>";
+(HashSet<string> failToFind, HashSet<Client> toActUpon, List<(string arg, IEnumerable<string> amb)> ambig) MultiUserCommandHelper(string[] args) {
+    HashSet<string> failToFind = new();
+    HashSet<Client> toActUpon;
+    List<(string arg, IEnumerable<string> amb)> ambig = new();
+    if (args[0] == "*")
+        toActUpon = new(server.Clients.Where(c => c.Connected));
+    else {
+        toActUpon = args[0] == "!*" ? new(server.Clients.Where(c => c.Connected)) : new();
+        for (int i = (args[0] == "!*" ? 1 : 0); i < args.Length; i++) {
+            string arg = args[i];
+            IEnumerable<Client> search = server.Clients.Where(c => c.Connected &&
+                (c.Name.ToLower().StartsWith(arg.ToLower()) || (Guid.TryParse(arg, out Guid res) && res == c.Id)));
+            if (!search.Any())
+                failToFind.Add(arg); //none found
+            else if (search.Count() > 1) {
+                Client? exact = search.FirstOrDefault(x => x.Name == arg);
+                if (!ReferenceEquals(exact, null)) {
+                    //even though multiple matches, since exact match, it isn't ambiguous
+                    if (args[0] == "!*")
+                        toActUpon.Remove(exact);
+                    else
+                        toActUpon.Add(exact);
+                }
+                else {
+                    if (!ambig.Any(x => x.arg == arg))
+                        ambig.Add((arg, search.Select(x => x.Name))); //more than one match
+                    foreach (var rem in search.ToList()) //need copy because can't remove from list while iterating over it
+                        toActUpon.Remove(rem);
+                }
+            }
+            else {
+                //only one match, so autocomplete
+                if (args[0] == "!*")
+                    toActUpon.Remove(search.First());
+                else
+                    toActUpon.Add(search.First());
+            }
+        }
     }
-    bool moreThanOne = false;
-    StringBuilder builder = new StringBuilder();
-    Client[] clients = (args[0].Trim() == "*"
-        ? server.Clients.Where(c => c.Connected)
-        : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
-    foreach (Client user in clients) {
-        if (moreThanOne) builder.Append(", ");
-        builder.Append(user.Name);
-        user.Dispose();
-        moreThanOne = true;
+    return (failToFind, toActUpon, ambig);
+}
+
+CommandHandler.RegisterCommand("rejoin", args => {
+    if (args.Length == 0) {
+        return "Usage: rejoin <* | !* (usernames to not rejoin...) | (usernames to rejoin...)>";
     }
 
-    return clients.Length > 0 ? $"Caused {builder} to rejoin" : "Usage: rejoin <usernames...>";
+    var res = MultiUserCommandHelper(args);
+
+    StringBuilder sb = new StringBuilder();
+    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
+    if (res.ambig.Count > 0) {
+        res.ambig.ForEach(x => {
+            sb.Append($"\nAmbiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}");
+        });
+    }
+
+    foreach (Client user in res.toActUpon) {
+        user.Dispose();
+    }
+
+    return sb.ToString();
 });
 
 CommandHandler.RegisterCommand("crash", args => {
-    if (args.Length  == 0) {
-        return "Usage: crash <* | usernames...>";
+    if (args.Length == 0) {
+        return "Usage: crash <* | !* (usernames to not crash...) | (usernames to crash...)>";
     }
-    bool moreThanOne = false;
-    StringBuilder builder = new StringBuilder();
-    Client[] clients = (args[0].Trim() == "*"
-        ? server.Clients.Where(c => c.Connected)
-        : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
-    foreach (Client user in clients) {
-        if (moreThanOne) builder.Append(", ");
-        moreThanOne = true;
-        builder.Append(user.Name);
+
+    var res = MultiUserCommandHelper(args);
+
+    StringBuilder sb = new StringBuilder();
+    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
+    if (res.ambig.Count > 0) {
+        res.ambig.ForEach(x => {
+            sb.Append($"\nAmbiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}");
+        });
+    }
+
+    foreach (Client user in res.toActUpon) {
         Task.Run(async () => {
             await user.Send(new ChangeStagePacket {
                 Id = "$among$us/SubArea",
@@ -241,24 +300,26 @@ CommandHandler.RegisterCommand("crash", args => {
         });
     }
 
-    return clients.Length > 0 ? $"Crashed {builder}" : "Usage: crash <usernames...>";
+    return sb.ToString();
 });
 
 CommandHandler.RegisterCommand("ban", args => {
     if (args.Length == 0) {
-        return "Usage: ban <* | usernames...>";
+        return "Usage: ban <* | !* (usernames to not ban...) | (usernames to ban...)>";
     }
-    bool moreThanOne = false;
-    StringBuilder builder = new StringBuilder();
 
-    Client[] clients = (args[0].Trim() == "*"
-        ? server.Clients.Where(c => c.Connected)
-        : server.Clients.Where(c =>
-            c.Connected && args.Any(x => c.Name == x || (Guid.TryParse(x, out Guid result) && result == c.Id)))).ToArray();
-    foreach (Client user in clients) {
-        if (moreThanOne) builder.Append(", ");
-        moreThanOne = true;
-        builder.Append(user.Name);
+    var res = MultiUserCommandHelper(args);
+
+    StringBuilder sb = new StringBuilder();
+    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
+    if (res.ambig.Count > 0) {
+        res.ambig.ForEach(x => {
+            sb.Append($"\nAmbiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}");
+        });
+    }
+
+    foreach (Client user in res.toActUpon) {
         Task.Run(async () => {
             await user.Send(new ChangeStagePacket {
                 Id = "$agogus/banned4lyfe",
@@ -273,12 +334,8 @@ CommandHandler.RegisterCommand("ban", args => {
         });
     }
 
-    if (clients.Length > 0) {
-        Settings.SaveSettings();
-        return $"Banned {builder}.";
-    }
-
-    return "Usage: ban <usernames...>";
+    Settings.SaveSettings();
+    return sb.ToString();
 });
 
 CommandHandler.RegisterCommand("send", args => {
@@ -512,7 +569,7 @@ CommandHandler.RegisterCommand("shine", args => {
         case "clear" when args.Length == 1:
             shineBag.Clear();
             foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient =>
-                (ConcurrentBag<int>) serverClient.Metadata["shineSync"])) playerBag.Clear();
+                (ConcurrentBag<int>)serverClient.Metadata["shineSync"]!)) playerBag?.Clear();
 
             return "Cleared shine bags";
         case "sync" when args.Length == 1:
@@ -542,6 +599,21 @@ CommandHandler.RegisterCommand("loadsettings", _ => {
     return "Loaded settings.json";
 });
 
+CommandHandler.RegisterCommand("restartserver", args =>
+{
+    if (args.Length != 0)
+    {
+        return "Usage: restartserver (no arguments)";
+    }
+    else
+    {
+        consoleLogger.Info("Received restartserver command");
+        restartRequested = true;
+        cts.Cancel();
+        return "Restarting...";
+    }
+});
+
 Console.CancelKeyPress += (_, e) => {
     e.Cancel = true;
     consoleLogger.Info("Received Ctrl+C");
@@ -553,6 +625,7 @@ CommandHandler.RegisterCommandAliases(_ => {
     return "Shutting down";
 }, "exit", "quit", "q");
 
+#pragma warning disable CS4014
 Task.Run(() => {
     consoleLogger.Info("Run help command for valid commands.");
     while (true) {
@@ -563,6 +636,19 @@ Task.Run(() => {
             }
         }
     }
-});
+}).ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+#pragma warning restore CS4014
 
 await listenTask;
+if (restartRequested) //need to do this here because this needs to happen after the listener closes, and there isn't an
+                      //easy way to sync in the restartserver command without it exiting Main()
+{
+    string? path = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
+    const string unableToStartMsg = "Unable to ascertain the executable location, you'll need to re-run the server manually.";
+    if (path != null) //path is probably just "Server", but in the context of the assembly, that's all you need to restart it.
+    {
+        Console.WriteLine($"Server Running on (pid): {System.Diagnostics.Process.Start(path)?.Id.ToString() ?? unableToStartMsg}");
+    }
+    else
+        consoleLogger.Info(unableToStartMsg);
+}
