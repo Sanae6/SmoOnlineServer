@@ -14,6 +14,11 @@ WorkingDirectory=/home/user/SMOServer/
 Restart=always
 # amount of time to wait before restarting the service
 RestartSec=5
+#TTY Input
+StandardInput=tty-force
+TTYVHangup=yes
+TTYPath=/dev/tty20
+TTYReset=yes
 
 [Install]
 WantedBy=multi-user.target
