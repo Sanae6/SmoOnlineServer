@@ -29,6 +29,7 @@ cp smo.serivce /etc/systemd/system/smo.service
 # edit ExecStart to your path for the server executable and change WorkingDirectory to the server directory
 chmod +x filepath to the server executable
 systemctl enable --now smo.service
+# for TTY access i would recommand conspy but there is also reptyr, chvt
 ```
 
 ## Run docker image
