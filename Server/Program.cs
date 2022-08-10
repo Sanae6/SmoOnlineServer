@@ -257,7 +257,7 @@ CommandHandler.RegisterCommand("rejoin", args => {
     var res = MultiUserCommandHelper(args);
 
     StringBuilder sb = new StringBuilder();
-    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.toActUpon.Count > 0 ? "Rejoined: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
     sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
     if (res.ambig.Count > 0) {
         res.ambig.ForEach(x => {
@@ -280,7 +280,7 @@ CommandHandler.RegisterCommand("crash", args => {
     var res = MultiUserCommandHelper(args);
 
     StringBuilder sb = new StringBuilder();
-    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
+    sb.Append(res.toActUpon.Count > 0 ? "Crashed: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
     sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
     if (res.ambig.Count > 0) {
         res.ambig.ForEach(x => {
