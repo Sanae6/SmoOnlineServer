@@ -79,8 +79,10 @@ Maxplayers: the max amount of players that can join, default: 8
 Flip: flips the player upside down, defaults: enabled: true, pov: both  
 Scenario: sync's scenario's for all players on the server, default: false  
 Banlist: banned people are unable to join the server, default: false  
+PersistShines/Moons: Allows the server to remember moon progress across crashes/restarts  
 
 ### Discord
+Note: Token and LogChannel needs to a string puts "" around it  
 Token: the token of the bot you want to load into, default: null  
 Prefix: the bot prefix to be used, default: $  
 LogChannel: logs the server console to that channel, default: null  
