@@ -79,6 +79,7 @@ server.ClientJoined += (c, _) => {
 };
 
 async Task ClientSyncShineBag(Client client) {
+    if (!Settings.Instance.Shines.Enabled) return;
     try {
         if ((bool?) client.Metadata["speedrun"] ?? false) return;
         ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (client.Metadata["shineSync"] ??= new ConcurrentBag<int>());
@@ -560,7 +561,7 @@ CommandHandler.RegisterCommand("flip", args => {
 });
 
 CommandHandler.RegisterCommand("shine", args => {
-    const string optionUsage = "Valid options: list, clear, sync, send";
+    const string optionUsage = "Valid options: list, clear, sync, send, set";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
@@ -589,6 +590,15 @@ CommandHandler.RegisterCommand("shine", args => {
             }
 
             return optionUsage;
+        case "set" when args.Length == 2: {
+            if (bool.TryParse(args[1], out bool result)) {
+                Settings.Instance.Shines.Enabled = result;
+                Settings.SaveSettings();
+                return result ? "Enabled shine sync" : "Disabled shine sync";
+            }
+
+            return optionUsage;
+        }
         default:
             return optionUsage;
     }
