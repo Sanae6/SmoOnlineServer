@@ -45,6 +45,7 @@ public class Settings {
     public ScenarioTable Scenario { get; set; } = new ScenarioTable();
     public BannedPlayers BanList { get; set; } = new BannedPlayers();
     public DiscordTable Discord { get; set; } = new DiscordTable();
+    public ShineTable Shines { get; set; } = new ShineTable();
     public PersistShinesTable PersistShines { get; set; } = new PersistShinesTable();
 
     public class ServerTable {
@@ -73,6 +74,10 @@ public class Settings {
         public string? Token { get; set; }
         public string Prefix { get; set; } = "$";
         public string? LogChannel { get; set; }
+    }
+
+    public class ShineTable {
+        public bool Enabled { get; set; } = true;
     }
 
     public class PersistShinesTable
