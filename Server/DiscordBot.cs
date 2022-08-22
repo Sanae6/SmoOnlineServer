@@ -96,6 +96,7 @@ public class DiscordBot {
             Reconnecting = false;
             string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
             DiscordClient.MessageCreated += async (_, args) => {
+                Logger.Info($"Message recieved on channel \"{args.Channel.Id}\", accepting commands from channel \"{Config.LogChannel ?? "(Any Channel)"}\", do channels match: {args.Channel.Id.ToString() == Config.LogChannel}");
                 if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
                 //prevent commands via dm and non-public channels
                 if (Config.LogChannel == null) {
@@ -105,7 +106,7 @@ public class DiscordBot {
                     }
                     if (args.Channel is DiscordDmChannel) {
 #if LOG_BAD_REQ
-                        Logger.Warn("A command was sent to the bot in a non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
+                        Logger.Warn("A command was sent to the bot in a direct message channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
 #endif
 #if SEND_RESP_TO_BAD_REQ
                         await args.Message.RespondAsync("This channel is not valid for running commands. (Your command was not processed).");
