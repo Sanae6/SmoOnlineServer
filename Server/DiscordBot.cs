@@ -99,7 +99,8 @@ public class DiscordBot {
             DiscordClient.MessageCreated += async (_, args) => {
                 if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
 #if LOG_CHANNELS_ON_COMMAND_ATTEMPT_VERBOSE
-                Logger.Info($"Message recieved on channel \"{args.Channel.Id}\", accepting commands from channel \"{Config.LogChannel ?? "(Any Channel)"}\", do channels match: {(args.Channel.Id.ToString() == Config.LogChannel) || (Config.LogChannel == null && !(args.Channel is DiscordDmChannel))}");
+                //Logger.Info($"Message recieved on channel \"{args.Channel.Id}\", accepting commands from channel \"{Config.LogChannel ?? "(Any Channel)"}\", do channels match: {(args.Channel.Id.ToString() == Config.LogChannel) || (Config.LogChannel == null && !(args.Channel is DiscordDmChannel))}");
+                Logger.Info($"cmdchannel == channel id exec ({args.Channel.Id.ToString() == Config.LogChannel})");
 #endif
                 //prevent commands via dm and non-public channels
                 if (Config.LogChannel == null) {
