@@ -1,5 +1,6 @@
 ﻿#define SEND_RESP_TO_BAD_REQ //should the bot send a message to people who attempt to run a command from an invalid location? (Comment out to disable)
 #define LOG_BAD_REQ //should the bot log aformentioned invalid requests?
+#define LOG_CHANNELS_ON_COMMAND_ATTEMPT_VERBOSE //print a message describing relevant channel ids whenever a command is attempted to be sent?
 
 using DSharpPlus;
 using DSharpPlus.Entities;
@@ -96,8 +97,10 @@ public class DiscordBot {
             Reconnecting = false;
             string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
             DiscordClient.MessageCreated += async (_, args) => {
-                Logger.Info($"Message recieved on channel \"{args.Channel.Id}\", accepting commands from channel \"{Config.LogChannel ?? "(Any Channel)"}\", do channels match: {args.Channel.Id.ToString() == Config.LogChannel}");
                 if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
+#if LOG_CHANNELS_ON_COMMAND_ATTEMPT_VERBOSE
+                Logger.Info($"Message recieved on channel \"{args.Channel.Id}\", accepting commands from channel \"{Config.LogChannel ?? "(Any Channel)"}\", do channels match: {(args.Channel.Id.ToString() == Config.LogChannel) || (Config.LogChannel == null && !(args.Channel is DiscordDmChannel))}");
+#endif
                 //prevent commands via dm and non-public channels
                 if (Config.LogChannel == null) {
                     if (!warnedAboutNullLogChannel) {
@@ -118,7 +121,7 @@ public class DiscordBot {
                     ulong chId = ulong.Parse(Config.LogChannel);
                     if (args.Channel.Id != chId) {
 #if LOG_BAD_REQ
-                        Logger.Warn("A command was sent to the bot in a non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
+                        Logger.Warn("A command was sent to the bot in some non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
 #endif
 #if SEND_RESP_TO_BAD_REQ
                         await args.Message.RespondAsync("This channel is not valid for running commands. (Your command was not processed).");
