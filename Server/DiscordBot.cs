@@ -1,4 +1,7 @@
-﻿using DSharpPlus;
+﻿#define SEND_RESP_TO_BAD_REQ
+#define LOG_BAD_REQ
+
+using DSharpPlus;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.Logging;
 using Shared;
@@ -14,6 +17,8 @@ public class DiscordBot {
     private DiscordChannel? LogChannel;
     private bool Reconnecting;
 
+    private bool warnedAboutNullLogChannel = false; //print warning message
+
     public DiscordBot() {
         Token = Config.Token;
         Logger.AddLogHandler(Log);
@@ -28,6 +33,7 @@ public class DiscordBot {
     }
 
     private async Task Reconnect() {
+        warnedAboutNullLogChannel = false;
         if (DiscordClient != null) // usually null prop works, not here though...`
             await DiscordClient.DisconnectAsync();
         await Run();
@@ -90,16 +96,34 @@ public class DiscordBot {
             Reconnecting = false;
             string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
             DiscordClient.MessageCreated += async (_, args) => {
-                if (args.Author.IsCurrent) return;
-                //prevent commands via dm
+                if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
+                //prevent commands via dm and non-public channels
                 if (Config.LogChannel == null) {
-                    Logger.Warn("The discord bot cannot process commands because the LogChannel in settings isn't set");
-                    return;
+                    if (!warnedAboutNullLogChannel) {
+                        Logger.Warn("You probably should set your LogChannel in settings.json");
+                        warnedAboutNullLogChannel = true;
+                    }
+                    if (args.Channel.IsPrivate) {
+#if LOG_BAD_REQ
+                        Logger.Warn("A command was sent to the bot in a non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
+#endif
+#if SEND_RESP_TO_BAD_REQ
+                        await args.Message.RespondAsync("This channel is not valid for running commands. (Your command was not processed).");
+#endif
+                        return;
+                    }
                 }
-                ulong chId = ulong.Parse(Config.LogChannel);
-                if (args.Channel.Id != chId) {
-                    Logger.Warn("A command was sent to the bot in a channel other than the specified log channel (probably attempt to run command via dm)");
-                    return;
+                else {
+                    ulong chId = ulong.Parse(Config.LogChannel);
+                    if (args.Channel.Id != chId) {
+#if LOG_BAD_REQ
+                        Logger.Warn("A command was sent to the bot in a non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
+#endif
+#if SEND_RESP_TO_BAD_REQ
+                        await args.Message.RespondAsync("This channel is not valid for running commands. (Your command was not processed).");
+#endif
+                        return;
+                    }
                 }
                 //run command
                 try {
