@@ -91,6 +91,17 @@ public class DiscordBot {
             string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
             DiscordClient.MessageCreated += async (_, args) => {
                 if (args.Author.IsCurrent) return;
+                //prevent commands via dm
+                if (Config.LogChannel == null) {
+                    Logger.Warn("The discord bot cannot process commands because the LogChannel in settings isn't set");
+                    return;
+                }
+                ulong chId = ulong.Parse(Config.LogChannel);
+                if (args.Channel.Id != chId) {
+                    Logger.Warn("A command was sent to the bot in a channel other than the specified log channel (probably attempt to run command via dm)");
+                    return;
+                }
+                //run command
                 try {
                     DiscordMessage msg = args.Message;
                     string? resp = null;
