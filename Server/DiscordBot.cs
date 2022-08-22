@@ -1,6 +1,4 @@
-﻿#define SEND_RESP_TO_BAD_REQ //should the bot send a message to people who attempt to run a command from an invalid location? (Comment out to disable)
-#define LOG_BAD_REQ //should the bot log aformentioned invalid requests?
-#define LOG_CHANNELS_ON_COMMAND_ATTEMPT_VERBOSE //print a message describing relevant channel ids whenever a command is attempted to be sent?
+﻿#define SEND_RESP_TO_BAD_REQ_DM // should the bot send a message to people who attempt to run commands/speak in dms
 
 using DSharpPlus;
 using DSharpPlus.Entities;
@@ -15,7 +13,7 @@ public class DiscordBot {
     private Settings.DiscordTable Config => Settings.Instance.Discord;
     private string Prefix => Config.Prefix;
     private readonly Logger Logger = new Logger("Discord");
-    private DiscordChannel? CommandChannel;
+    //private DiscordChannel? CommandChannel;
     private DiscordChannel? LogChannel;
     private bool Reconnecting;
 
@@ -45,9 +43,10 @@ public class DiscordBot {
         try {
             if (DiscordClient == null || Token != Config.Token)
                 await Run();
-            if (Config.CommandChannel != null)
-                CommandChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.CommandChannel)) ??
-                                    throw new NullReferenceException("Discord client not setup yet!"));
+            //CommandChannel not currently used
+            //if (Config.CommandChannel != null)
+            //    CommandChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.CommandChannel)) ??
+            //                        throw new NullReferenceException("Discord client not setup yet!"));
             if (Config.LogChannel != null)
                 LogChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.LogChannel)) ??
                                     throw new NullReferenceException("Discord client not setup yet!"));
@@ -99,40 +98,26 @@ public class DiscordBot {
             Logger.Info(
                 $"Discord bot logged in as {DiscordClient.CurrentUser.Username}#{DiscordClient.CurrentUser.Discriminator}");
             Reconnecting = false;
-            string mentionPrefix = $"{DiscordClient.CurrentUser.Mention} ";
+            string mentionPrefix = $"{DiscordClient.CurrentUser.Mention}";
             DiscordClient.MessageCreated += async (_, args) => {
                 if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
-#if LOG_CHANNELS_ON_COMMAND_ATTEMPT_VERBOSE
-                //Logger.Info($"Message recieved on channel \"{args.Channel.Id}\", accepting commands from channel \"{Config.LogChannel ?? "(Any Channel)"}\", do channels match: {(args.Channel.Id.ToString() == Config.LogChannel) || (Config.LogChannel == null && !(args.Channel is DiscordDmChannel))}");
-                Logger.Info($"cmdchannel == channel id exec ({args.Channel.Id.ToString() == Config.CommandChannel})");
-#endif
                 //prevent commands via dm and non-public channels
                 if (Config.CommandChannel == null) {
                     if (!warnedAboutNullLogChannel) {
-                        Logger.Warn("You probably should set your LogChannel in settings.json");
+                        Logger.Warn("You probably should set your CommandChannel in settings.json");
                         warnedAboutNullLogChannel = true;
                     }
                     if (args.Channel is DiscordDmChannel) {
-#if LOG_BAD_REQ
-                        Logger.Warn("A command was sent to the bot in a direct message channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
-#endif
-#if SEND_RESP_TO_BAD_REQ
-                        await args.Message.RespondAsync("This channel is not valid for running commands. (Your command was not processed).");
+#if SEND_RESP_TO_BAD_REQ_DM
+                        await args.Message.RespondAsync("DM's are not valid for running commands or communication to the bot. (Your command was not processed).");
 #endif
                         return;
                     }
                 }
                 else {
                     ulong chId = ulong.Parse(Config.CommandChannel);
-                    if (args.Channel.Id != chId) {
-#if LOG_BAD_REQ
-                        Logger.Warn("A command was sent to the bot in some non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
-#endif
-#if SEND_RESP_TO_BAD_REQ
-                        await args.Message.RespondAsync("This channel is not valid for running commands. (Your command was not processed).");
-#endif
+                    if (args.Channel.Id != chId)
                         return;
-                    }
                 }
                 //run command
                 try {
@@ -146,7 +131,7 @@ public class DiscordBot {
                         resp = string.Join('\n', CommandHandler.GetResult(msg.Content[Prefix.Length..]).ReturnStrings);
                     } else if (msg.Content.StartsWith(mentionPrefix)) {
                         await msg.Channel.TriggerTypingAsync();
-                        resp = string.Join('\n', CommandHandler.GetResult(msg.Content[mentionPrefix.Length..]).ReturnStrings);
+                        resp = string.Join('\n', CommandHandler.GetResult(msg.Content[mentionPrefix.Length..].TrimStart()).ReturnStrings);
                     }
                     if (resp != null)
                     {
