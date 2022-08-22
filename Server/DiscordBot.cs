@@ -1,4 +1,4 @@
-﻿#define SEND_RESP_TO_BAD_REQ_DM // should the bot send a message to people who attempt to run commands/speak in dms
+﻿//#define SEND_RESP_TO_BAD_REQ_DM // should the bot send a message to people who attempt to run commands/speak in dms
 
 using DSharpPlus;
 using DSharpPlus.Entities;
