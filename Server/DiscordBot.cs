@@ -1,5 +1,5 @@
-﻿#define SEND_RESP_TO_BAD_REQ
-#define LOG_BAD_REQ
+﻿#define SEND_RESP_TO_BAD_REQ //should the bot send a message to people who attempt to run a command from an invalid location? (Comment out to disable)
+#define LOG_BAD_REQ //should the bot log aformentioned invalid requests?
 
 using DSharpPlus;
 using DSharpPlus.Entities;
@@ -103,7 +103,7 @@ public class DiscordBot {
                         Logger.Warn("You probably should set your LogChannel in settings.json");
                         warnedAboutNullLogChannel = true;
                     }
-                    if (args.Channel.IsPrivate) {
+                    if (args.Channel is DiscordDmChannel) {
 #if LOG_BAD_REQ
                         Logger.Warn("A command was sent to the bot in a non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");
 #endif
