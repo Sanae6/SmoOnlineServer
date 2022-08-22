@@ -15,6 +15,7 @@ public class DiscordBot {
     private Settings.DiscordTable Config => Settings.Instance.Discord;
     private string Prefix => Config.Prefix;
     private readonly Logger Logger = new Logger("Discord");
+    private DiscordChannel? CommandChannel;
     private DiscordChannel? LogChannel;
     private bool Reconnecting;
 
@@ -44,11 +45,14 @@ public class DiscordBot {
         try {
             if (DiscordClient == null || Token != Config.Token)
                 await Run();
+            if (Config.CommandChannel != null)
+                CommandChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.CommandChannel)) ??
+                                    throw new NullReferenceException("Discord client not setup yet!"));
             if (Config.LogChannel != null)
                 LogChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.LogChannel)) ??
                                     throw new NullReferenceException("Discord client not setup yet!"));
         } catch (Exception e) {
-            Logger.Error($"Failed to get log channel \"{Config.LogChannel}\"");
+            Logger.Error($"Failed to get log channel \"{Config.CommandChannel}\"");
             Logger.Error(e);
         }
     }
@@ -100,10 +104,10 @@ public class DiscordBot {
                 if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
 #if LOG_CHANNELS_ON_COMMAND_ATTEMPT_VERBOSE
                 //Logger.Info($"Message recieved on channel \"{args.Channel.Id}\", accepting commands from channel \"{Config.LogChannel ?? "(Any Channel)"}\", do channels match: {(args.Channel.Id.ToString() == Config.LogChannel) || (Config.LogChannel == null && !(args.Channel is DiscordDmChannel))}");
-                Logger.Info($"cmdchannel == channel id exec ({args.Channel.Id.ToString() == Config.LogChannel})");
+                Logger.Info($"cmdchannel == channel id exec ({args.Channel.Id.ToString() == Config.CommandChannel})");
 #endif
                 //prevent commands via dm and non-public channels
-                if (Config.LogChannel == null) {
+                if (Config.CommandChannel == null) {
                     if (!warnedAboutNullLogChannel) {
                         Logger.Warn("You probably should set your LogChannel in settings.json");
                         warnedAboutNullLogChannel = true;
@@ -119,7 +123,7 @@ public class DiscordBot {
                     }
                 }
                 else {
-                    ulong chId = ulong.Parse(Config.LogChannel);
+                    ulong chId = ulong.Parse(Config.CommandChannel);
                     if (args.Channel.Id != chId) {
 #if LOG_BAD_REQ
                         Logger.Warn("A command was sent to the bot in some non-public channel. This will not be processed. (Send commands in the specified LogChannel in settings.json or only in public channels)");

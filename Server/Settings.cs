@@ -73,6 +73,7 @@ public class Settings {
     public class DiscordTable {
         public string? Token { get; set; }
         public string Prefix { get; set; } = "$";
+        public string? CommandChannel { get; set; }
         public string? LogChannel { get; set; }
     }
 
