@@ -26,6 +26,8 @@ public class DiscordBot {
         });
         if (Config.CommandChannel == null)
             Logger.Warn("You probably should set your CommandChannel in settings.json");
+        if (Config.LogChannel == null)
+            Logger.Warn("You probably should set your LogChannel in settings.json");
         if (Config.Token == null) return;
         Settings.LoadHandler += SettingsLoadHandler;
     }
@@ -103,7 +105,7 @@ public class DiscordBot {
                     if (args.Channel is DiscordDmChannel)
                         return; //no dm'ing the bot allowed!
                 }
-                else if (args.Channel.Id != CommandChannel.Id)
+                else if (args.Channel.Id != CommandChannel.Id && (LogChannel != null && args.Channel.Id != LogChannel.Id))
                     return;
                 //run command
                 try {
