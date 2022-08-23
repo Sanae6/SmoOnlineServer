@@ -1,6 +1,4 @@
-﻿//#define SEND_RESP_TO_BAD_REQ_DM // should the bot send a message to people who attempt to run commands/speak in dms
-
-using DSharpPlus;
+﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.Logging;
 using Shared;
@@ -13,11 +11,9 @@ public class DiscordBot {
     private Settings.DiscordTable Config => Settings.Instance.Discord;
     private string Prefix => Config.Prefix;
     private readonly Logger Logger = new Logger("Discord");
-    //private DiscordChannel? CommandChannel;
+    private DiscordChannel? CommandChannel;
     private DiscordChannel? LogChannel;
     private bool Reconnecting;
-
-    private bool warnedAboutNullLogChannel = false; //print warning message
 
     public DiscordBot() {
         Token = Config.Token;
@@ -28,12 +24,13 @@ public class DiscordBot {
             Task.Run(Reconnect);
             return "Restarting Discord bot";
         });
+        if (Config.CommandChannel == null)
+            Logger.Warn("You probably should set your CommandChannel in settings.json");
         if (Config.Token == null) return;
         Settings.LoadHandler += SettingsLoadHandler;
     }
 
     private async Task Reconnect() {
-        warnedAboutNullLogChannel = false;
         if (DiscordClient != null) // usually null prop works, not here though...`
             await DiscordClient.DisconnectAsync();
         await Run();
@@ -44,9 +41,9 @@ public class DiscordBot {
             if (DiscordClient == null || Token != Config.Token)
                 await Run();
             //CommandChannel not currently used
-            //if (Config.CommandChannel != null)
-            //    CommandChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.CommandChannel)) ??
-            //                        throw new NullReferenceException("Discord client not setup yet!"));
+            if (Config.CommandChannel != null)
+                CommandChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.CommandChannel)) ??
+                                    throw new NullReferenceException("Discord client not setup yet!"));
             if (Config.LogChannel != null)
                 LogChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.LogChannel)) ??
                                     throw new NullReferenceException("Discord client not setup yet!"));
@@ -102,23 +99,12 @@ public class DiscordBot {
             DiscordClient.MessageCreated += async (_, args) => {
                 if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
                 //prevent commands via dm and non-public channels
-                if (Config.CommandChannel == null) {
-                    if (!warnedAboutNullLogChannel) {
-                        Logger.Warn("You probably should set your CommandChannel in settings.json");
-                        warnedAboutNullLogChannel = true;
-                    }
-                    if (args.Channel is DiscordDmChannel) {
-#if SEND_RESP_TO_BAD_REQ_DM
-                        await args.Message.RespondAsync("DM's are not valid for running commands or communication to the bot. (Your command was not processed).");
-#endif
-                        return;
-                    }
+                if (CommandChannel == null) {
+                    if (args.Channel is DiscordDmChannel)
+                        return; //no dm'ing the bot allowed!
                 }
-                else {
-                    ulong chId = ulong.Parse(Config.CommandChannel);
-                    if (args.Channel.Id != chId)
-                        return;
-                }
+                else if (args.Channel.Id != CommandChannel.Id)
+                    return;
                 //run command
                 try {
                     DiscordMessage msg = args.Message;
