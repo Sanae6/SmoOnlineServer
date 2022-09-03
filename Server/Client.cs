@@ -28,6 +28,17 @@ public class Client : IDisposable {
         Logger = new Logger("Unknown User");
     }
 
+    // copy Client to use existing data for a new reconnected connection with a new socket
+    public Client(Client other, Socket socket) {
+        Metadata       = other.Metadata;
+        Connected      = other.Connected;
+        CurrentCostume = other.CurrentCostume;
+        Id             = other.Id;
+        Socket         = socket;
+        Server         = other.Server;
+        Logger         = other.Logger;
+    }
+
     public void Dispose() {
         if (Socket?.Connected is true)
             Socket.Disconnect(false);

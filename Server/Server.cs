@@ -180,32 +180,21 @@ public class Server {
                             goto disconnect;
                         }
 
-                        bool firstConn = false;
+                        bool firstConn = true;
                         switch (connect.ConnectionType) {
-                            case ConnectPacket.ConnectionTypes.FirstConnection: {
-                                firstConn = true;
-                                if (FindExistingClient(header.Id) is { } newClient) {
-                                    if (newClient.Connected) {
-                                        newClient.Logger.Info($"Disconnecting already connected client {newClient.Socket?.RemoteEndPoint} for {client.Socket?.RemoteEndPoint}");
-                                        newClient.Dispose();
-                                    }
-                                    newClient.Socket = client.Socket;
-                                    client = newClient;
-                                }
-
-                                break;
-                            }
+                            case ConnectPacket.ConnectionTypes.FirstConnection:
                             case ConnectPacket.ConnectionTypes.Reconnecting: {
                                 client.Id = header.Id;
-                                if (FindExistingClient(header.Id) is { } newClient) {
-                                    if (newClient.Connected) {
-                                        newClient.Logger.Info($"Disconnecting already connected client {newClient.Socket?.RemoteEndPoint} for {client.Socket?.RemoteEndPoint}");
-                                        newClient.Dispose();
+                                if (FindExistingClient(header.Id) is { } oldClient) {
+                                    firstConn = false;
+                                    client = new Client(oldClient, socket);
+                                    Clients.Remove(oldClient);
+                                    Clients.Add(client);
+                                    if (oldClient.Connected) {
+                                        oldClient.Logger.Info($"Disconnecting already connected client {oldClient.Socket?.RemoteEndPoint} for {client.Socket?.RemoteEndPoint}");
+                                        oldClient.Dispose();
                                     }
-                                    newClient.Socket = client.Socket;
-                                    client = newClient;
                                 } else {
-                                    firstConn = true;
                                     connect.ConnectionType = ConnectPacket.ConnectionTypes.FirstConnection;
                                 }
 
@@ -222,7 +211,6 @@ public class Server {
                             List<Client> toDisconnect = Clients.FindAll(c => c.Id == header.Id && c.Connected && c.Socket != null);
                             Clients.RemoveAll(c => c.Id == header.Id);
 
-                            client.Id = header.Id;
                             Clients.Add(client);
 
                             Parallel.ForEachAsync(toDisconnect, (c, token) => c.Socket!.DisconnectAsync(false, token));
