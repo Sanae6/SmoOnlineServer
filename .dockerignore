@@ -1,0 +1,4 @@
+/Server/**/.gitignore
+/Server/**/*.env
+/Server/**/*.md
+/Server/**/*.sh

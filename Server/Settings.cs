@@ -47,6 +47,7 @@ public class Settings {
     public DiscordTable Discord { get; set; } = new DiscordTable();
     public ShineTable Shines { get; set; } = new ShineTable();
     public PersistShinesTable PersistShines { get; set; } = new PersistShinesTable();
+    public JsonApiTable JsonApi { get; set; } = new JsonApiTable();
 
     public class ServerTable {
         public string Address { get; set; } = IPAddress.Any.ToString();
@@ -85,5 +86,11 @@ public class Settings {
     {
         public bool Enabled { get; set; } = false;
         public string Filename { get; set; } = "./moons.json";
+    }
+
+    public class JsonApiTable
+    {
+        public bool Enabled { get; set; } = false;
+        public Dictionary<string, List<string>> Tokens { get; set; } = new Dictionary<string, List<string>>();
     }
 }

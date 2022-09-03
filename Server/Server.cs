@@ -29,7 +29,9 @@ public class Server {
                 Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
 
-                Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
+                if (! Settings.Instance.JsonApi.Enabled) {
+                    Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
+                }
 
                 try {
 #pragma warning disable CS4014
@@ -157,6 +159,8 @@ public class Server {
                 if (!await Read(memory.Memory[..Constants.HeaderSize], Constants.HeaderSize, 0))
                     break;
                 PacketHeader header = GetHeader(memory.Memory.Span[..Constants.HeaderSize]);
+                if (first && await JsonApi.JsonApi.HandleAPIRequest(this, socket, header, memory)) { goto close; }
+
                 Range packetRange = Constants.HeaderSize..(Constants.HeaderSize + header.PacketSize);
                 if (header.PacketSize > 0) {
                     IMemoryOwner<byte> memTemp = memory; // header to copy to new memory
@@ -294,6 +298,7 @@ public class Server {
             Logger.Info($"Client {remote} disconnected from the server");
         }
 
+        close:
         // Clients.Remove(client)
         client.Connected = false;
         try {
