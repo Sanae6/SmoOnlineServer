@@ -127,6 +127,7 @@ public class Server {
 
     private async void HandleSocket(Socket socket) {
         Client client = new Client(socket) {Server = this};
+        var remote = socket.RemoteEndPoint;
         IMemoryOwner<byte> memory = null!;
         await client.Send(new InitPacket {
             MaxPlayers = Settings.Instance.Server.MaxPlayers
@@ -142,7 +143,7 @@ public class Server {
                         int size = await socket.ReceiveAsync(readMem[readOffset..readSize], SocketFlags.None);
                         if (size == 0) {
                             // treat it as a disconnect and exit
-                            Logger.Info($"Socket {socket.RemoteEndPoint} disconnected.");
+                            Logger.Info($"Socket {remote} disconnected.");
                             if (socket.Connected) await socket.DisconnectAsync(false);
                             return false;
                         }
@@ -247,7 +248,7 @@ public class Server {
                         tempBuffer.Dispose();
                     });
 
-                    Logger.Info($"Client {client.Name} ({client.Id}/{socket.RemoteEndPoint}) connected.");
+                    Logger.Info($"Client {client.Name} ({client.Id}/{remote}) connected.");
                 } else if (header.Id != client.Id && client.Id != Guid.Empty) {
                     throw new Exception($"Client {client.Name} sent packet with invalid client id {header.Id} instead of {client.Id}");
                 }
@@ -286,7 +287,12 @@ public class Server {
         }
 
         disconnect:
-        Logger.Info($"Client {socket.RemoteEndPoint} ({client.Name}/{client.Id}) disconnected from the server");
+        if (client.Name != "Unknown User" && client.Id != Guid.Parse("00000000-0000-0000-0000-000000000000")) {
+            Logger.Info($"Client {remote} ({client.Name}/{client.Id}) disconnected from the server");
+        }
+        else {
+            Logger.Info($"Client {remote} disconnected from the server");
+        }
 
         bool wasConnected = client.Connected;
         // Clients.Remove(client)
