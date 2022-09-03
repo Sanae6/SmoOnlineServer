@@ -6,6 +6,7 @@ services:
     #build: .
     #user: 1000:1000
     stdin_open: true
+    restart: unless-stopped
     ports:
     - 1027:1027
     volumes:

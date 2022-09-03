@@ -5,8 +5,8 @@ FROM  --platform=linux/amd64  mcr.microsoft.com/dotnet/sdk:6.0  as  build
 
 WORKDIR  /app/
 
-COPY  ./Server/  ./Server/
-COPY  ./Shared/  ./Shared/
+COPY  ./Shared/Shared.csproj  ./Shared/Shared.csproj
+COPY  ./Server/Server.csproj  ./Server/Server.csproj
 
 ARG TARGETARCH
 
@@ -15,6 +15,9 @@ RUN  dotnet  restore  \
     ./Server/Server.csproj  \
     -r debian.11-`echo $TARGETARCH | sed 's@^amd@x@'`  \
 ;
+
+COPY  ./Shared/  ./Shared/
+COPY  ./Server/  ./Server/
 
 # Build application binary
 RUN  dotnet  publish  \
