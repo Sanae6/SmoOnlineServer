@@ -253,14 +253,6 @@ public class Server {
                     throw new Exception($"Client {client.Name} sent packet with invalid client id {header.Id} instead of {client.Id}");
                 }
 
-                if (header.Type == PacketType.Costume) {
-                    CostumePacket costumePacket = new CostumePacket {
-                        BodyName = ""
-                    };
-                    costumePacket.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + costumePacket.Size)]);
-                    client.CurrentCostume = costumePacket;
-                }
-
                 try {
                     IPacket packet = (IPacket) Activator.CreateInstance(Constants.PacketIdMap[header.Type])!;
                     packet.Deserialize(memory.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + packet.Size)]);
