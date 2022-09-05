@@ -49,7 +49,12 @@ public static class ApiRequestStatus {
                 output.TryGetValue(key, out next);
 
                 // traverse down the Settings object
-                input  = input.GetType().GetProperty(key).GetValue(input, null);
+                var prop = input.GetType().GetProperty(key);
+                if (prop == null) {
+                    JsonApi.Logger.Warn($"Property \"{allowedSetting}\" doesn't exist on the Settings object. This is probably a misconfiguration in the settings.json");
+                    goto next;
+                }
+                input  = prop.GetValue(input, null);
             }
 
             if (lastKey != "") {
@@ -57,6 +62,8 @@ public static class ApiRequestStatus {
                 output.Remove(lastKey);
                 output.Add(lastKey, input);
             }
+
+            next:;
         }
 
         return settings;
