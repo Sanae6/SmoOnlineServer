@@ -12,7 +12,6 @@ Server.Server server = new Server.Server();
 HashSet<int> shineBag = new HashSet<int>();
 CancellationTokenSource cts = new CancellationTokenSource();
 bool restartRequested = false;
-Task listenTask = server.Listen(cts.Token);
 Logger consoleLogger = new Logger("Console");
 DiscordBot bot = new DiscordBot();
 await bot.Run();
@@ -655,7 +654,8 @@ Task.Run(() => {
 }).ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
 #pragma warning restore CS4014
 
-await listenTask;
+await server.Listen(cts.Token);
+
 if (restartRequested) //need to do this here because this needs to happen after the listener closes, and there isn't an
                       //easy way to sync in the restartserver command without it exiting Main()
 {
