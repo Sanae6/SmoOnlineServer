@@ -39,19 +39,31 @@ public class DiscordBot {
     }
 
     private async void SettingsLoadHandler() {
-        try {
-            if (DiscordClient == null || Token != Config.Token)
-                await Run();
-            //CommandChannel not currently used
-            if (Config.CommandChannel != null)
-                CommandChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.CommandChannel)) ??
-                                    throw new NullReferenceException("Discord client not setup yet!"));
-            if (Config.LogChannel != null)
-                LogChannel = await (DiscordClient?.GetChannelAsync(ulong.Parse(Config.LogChannel)) ??
-                                    throw new NullReferenceException("Discord client not setup yet!"));
-        } catch (Exception e) {
-            Logger.Error($"Failed to get log channel \"{Config.CommandChannel}\"");
-            Logger.Error(e);
+        if (DiscordClient == null || Token != Config.Token) {
+            await Run();
+        }
+
+        if (DiscordClient == null) {
+            Logger.Error(new NullReferenceException("Discord client not setup yet!"));
+            return;
+        }
+
+        if (Config.CommandChannel != null) {
+            try {
+                CommandChannel = await DiscordClient.GetChannelAsync(ulong.Parse(Config.CommandChannel));
+            } catch (Exception e) {
+                Logger.Error($"Failed to get command channel \"{Config.CommandChannel}\"");
+                Logger.Error(e);
+            }
+        }
+
+        if (Config.LogChannel != null) {
+            try {
+                LogChannel = await DiscordClient.GetChannelAsync(ulong.Parse(Config.LogChannel));
+            } catch (Exception e) {
+                Logger.Error($"Failed to get log channel \"{Config.LogChannel}\"");
+                Logger.Error(e);
+            }
         }
     }
 
