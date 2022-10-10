@@ -24,11 +24,11 @@ public class DiscordBot {
             Task.Run(Reconnect);
             return "Restarting Discord bot";
         });
+        if (Config.Token == null) return;
         if (Config.CommandChannel == null)
             Logger.Warn("You probably should set your CommandChannel in settings.json");
         if (Config.LogChannel == null)
             Logger.Warn("You probably should set your LogChannel in settings.json");
-        if (Config.Token == null) return;
         Settings.LoadHandler += SettingsLoadHandler;
     }
 
