@@ -87,10 +87,11 @@ async Task ClientSyncShineBag(Client client) {
         if ((bool?) client.Metadata["speedrun"] ?? false) return;
         ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (client.Metadata["shineSync"] ??= new ConcurrentBag<int>());
         foreach (int shine in shineBag.Except(clientBag).ToArray()) {
-            clientBag.Add(shine);
+            if (!client.Connected) return;
             await client.Send(new ShinePacket {
                 ShineId = shine
             });
+            clientBag.Add(shine);
         }
     } catch {
         // errors that can happen when sending will crash the server :)
@@ -100,7 +101,7 @@ async Task ClientSyncShineBag(Client client) {
 async void SyncShineBag() {
     try {
         await PersistShines();
-        await Parallel.ForEachAsync(server.Clients.ToArray(), async (client, _) => await ClientSyncShineBag(client));
+        await Parallel.ForEachAsync(server.ClientsConnected.ToArray(), async (client, _) => await ClientSyncShineBag(client));
     } catch {
         // errors that can happen shines change will crash the server :)
     }
