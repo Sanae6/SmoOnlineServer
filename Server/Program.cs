@@ -172,6 +172,7 @@ server.PacketHandler = (c, p) => {
             break;
 
         case ShinePacket shinePacket: {
+            if (!Settings.Instance.Shines.Enabled) return false;
             if (c.Metadata["loadedSave"] is false) break;
             ConcurrentBag<int> playerBag = (ConcurrentBag<int>)c.Metadata["shineSync"]!;
             shineBag.Add(shinePacket.ShineId);
