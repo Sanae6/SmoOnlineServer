@@ -75,6 +75,7 @@ public class Settings {
         public string Prefix { get; set; } = "$";
         public string? CommandChannel { get; set; }
         public string? LogChannel { get; set; }
+        public bool LogCommands { get; set; } = false;
     }
 
     public class ShineTable {
