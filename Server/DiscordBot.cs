@@ -56,7 +56,7 @@ public class DiscordBot
         {
             return; //this is bad if the client ever crashes and isn't reassigned to null, but we don't want multiple instances of the bot running at the same time.
         }
-        if (localSettings.Token == null || (localSettings.LogChannel == null && localSettings.CommandChannel == null))
+        if (localSettings.Token == null || (localSettings.AdminChannel == null && localSettings.CommandChannel == null))
         {
             //no point trying to run anything if there's no discord token and/or no channel for a user to interact with the bot through.
             logger.Error("Tried to run the discord bot, but the Token and/or communication channels are not specified in the settings.");
@@ -109,7 +109,7 @@ public class DiscordBot
             };
             await wait.WaitAsync();
             //we need to wait for the ready event before we can do any of this nonsense.
-            logChannel = (ulong.TryParse(localSettings.LogChannel, out ulong lcid) ? (client != null ? await client.GetChannelAsync(lcid) : null) : null) as SocketTextChannel;
+            logChannel = (ulong.TryParse(localSettings.AdminChannel, out ulong lcid) ? (client != null ? await client.GetChannelAsync(lcid) : null) : null) as SocketTextChannel;
             //commandChannel = (ulong.TryParse(localSettings.CommandChannel, out ulong ccid) ? (client != null ? await client.GetChannelAsync(ccid) : null) : null) as SocketTextChannel;
             client!.MessageReceived += (m) => HandleCommandAsync(m);
             logger.Info("Discord bot has been initialized.");
@@ -137,7 +137,7 @@ public class DiscordBot
 
     private async void LogToDiscordLogChannel(string source, string level, string text, ConsoleColor color)
     {
-        logChannel = (ulong.TryParse(localSettings.LogChannel, out ulong lcid) ? (client != null ? await client.GetChannelAsync(lcid) : null) : null) as SocketTextChannel;
+        logChannel = (ulong.TryParse(localSettings.AdminChannel, out ulong lcid) ? (client != null ? await client.GetChannelAsync(lcid) : null) : null) as SocketTextChannel;
         if (logChannel != null)
         {
             try
@@ -176,7 +176,7 @@ public class DiscordBot
     {
         if (arg is not SocketUserMessage)
             return; //idk what to do in this circumstance.
-        if ((arg.Channel.Id.ToString() == localSettings.CommandChannel || arg.Channel.Id.ToString() == localSettings.LogChannel) && !arg.Author.IsBot)
+        if ((arg.Channel.Id.ToString() == localSettings.CommandChannel || arg.Channel.Id.ToString() == localSettings.AdminChannel) && !arg.Author.IsBot)
         {
             string message = (await arg.Channel.GetMessageAsync(arg.Id)).Content;
             //run command
@@ -226,10 +226,10 @@ public class DiscordBot
 
         if (localSettings.CommandChannel == null)
             logger.Warn("You probably should set your CommandChannel in settings.json");
-        if (localSettings.LogChannel == null)
+        if (localSettings.AdminChannel == null)
             logger.Warn("You probably should set your LogChannel in settings.json");
 
-        if (oldSettings.Token != localSettings.Token || oldSettings.LogChannel != localSettings.LogChannel || oldSettings.CommandChannel != localSettings.CommandChannel)
+        if (oldSettings.Token != localSettings.Token || oldSettings.AdminChannel != localSettings.AdminChannel || oldSettings.CommandChannel != localSettings.CommandChannel)
         {
             //start over fresh (there might be a more intelligent way to do this without restarting the bot if only the log/command channel changed, but I'm lazy.
             Stop();

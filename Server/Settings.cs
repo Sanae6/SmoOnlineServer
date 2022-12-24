@@ -74,7 +74,8 @@ public class Settings {
         public string? Token { get; set; }
         public string Prefix { get; set; } = "$";
         public string? CommandChannel { get; set; }
-        public string? LogChannel { get; set; }
+        [JsonProperty(PropertyName = "LogChannel")]
+        public string? AdminChannel { get; set; }
         public bool LogCommands { get; set; } = false;
     }
 
