@@ -177,24 +177,23 @@ public class DiscordBot
             //run command
             try
             {
-                string? resp = null;
+                string? args = null;
                 if (string.IsNullOrEmpty(localSettings.Prefix))
                 {
-                    await arg.Channel.TriggerTypingAsync();
-                    resp = string.Join('\n', CommandHandler.GetResult(message).ReturnStrings);
+                    args = message;
                 }
                 else if (message.StartsWith(localSettings.Prefix))
                 {
-                    await arg.Channel.TriggerTypingAsync();
-                    resp = string.Join('\n', CommandHandler.GetResult(message[localSettings.Prefix.Length..]).ReturnStrings);
+                    args = message[localSettings.Prefix.Length..];
                 }
                 else if (message.StartsWith($"<@{client!.CurrentUser.Id}>"))
                 {
-                    await arg.Channel.TriggerTypingAsync();
-                    resp = string.Join('\n', CommandHandler.GetResult(message[client!.CurrentUser.Mention.Length..].TrimStart()).ReturnStrings);
+                    args = message[client!.CurrentUser.Mention.Length..].TrimStart();
                 }
-                if (resp != null)
+                if (args != null)
                 {
+                    await arg.Channel.TriggerTypingAsync();
+                    string resp = string.Join('\n', CommandHandler.GetResult(args).ReturnStrings);
                     if (localSettings.LogCommands)
                     {
                         logger.Info($"\"{arg.Author.Username}\" ran the command: \"{message}\" via discord");
