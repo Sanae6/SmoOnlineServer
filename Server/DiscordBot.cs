@@ -147,10 +147,6 @@ public class DiscordBot
         if ((arg.Channel.Id.ToString() == localSettings.CommandChannel || arg.Channel.Id.ToString() == localSettings.LogChannel) && !arg.Author.IsBot)
         {
             string message = (await arg.Channel.GetMessageAsync(arg.Id)).Content;
-            if (localSettings.LogCommands)
-            {
-                logger.Info($"\"{arg.Author.Username}\" ran the command: \"{message}\" via discord");
-            }
             //run command
             try
             {
@@ -172,6 +168,10 @@ public class DiscordBot
                 }
                 if (resp != null)
                 {
+                    if (localSettings.LogCommands)
+                    {
+                        logger.Info($"\"{arg.Author.Username}\" ran the command: \"{message}\" via discord");
+                    }
                     foreach (string mesg in SplitMessage(resp))
                         await (arg as SocketUserMessage).ReplyAsync(mesg);
                 }
