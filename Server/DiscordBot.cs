@@ -22,10 +22,15 @@ public class DiscordBot
     {
         CommandHandler.RegisterCommand("dscrestart", _ =>
         {
-            Stop();
+            //Task.Run is to fix deadlock (dispose can only be finalized if all discord callbacks are returned,
+            //and since this delegate is called directly from a callback, it would cause a deadlock).
+            Task.Run(() =>
+            {
+                Stop();
 #pragma warning disable CS4014
-            Init();
+                Init();
 #pragma warning restore CS4014
+            });
             return "Restarting Discord bot...";
         });
         logger.Info("Starting discord bot (ctor)");
