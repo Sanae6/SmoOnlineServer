@@ -63,7 +63,34 @@ public class DiscordBot
                 LogLevel = LogSeverity.Warning
             });
 
-        client.Log += async (a) => await Task.Run(() => LogToDiscordLogChannel($"Discord: {a.Source}", a.Severity.ToString(), a.Exception?.ToString() ?? "null", (int)a.Severity <= 2 ? ConsoleColor.Yellow : ConsoleColor.Black));
+        client.Log += async (a) => await Task.Run(() => 
+        {
+            //as time goes on, we may encounter logged info that we literally don't care about. Fill out an if statement to properly
+            //filter it out to avoid logging it to discord.
+            //if (a.Message.StartsWith(""))
+            //{
+            //    return;
+            //}
+            string message = a.Message + (a.Exception != null ? "Exception: " + a.Exception.ToString() : "");
+            ConsoleColor col;
+            switch (a.Severity)
+            {
+                default:
+                case LogSeverity.Info:
+                case LogSeverity.Debug:
+                    col = ConsoleColor.White;
+                    break;
+                case LogSeverity.Critical:
+                case LogSeverity.Error:
+                    col = ConsoleColor.Red;
+                    break;
+                case LogSeverity.Warning:
+                    col = ConsoleColor.Yellow;
+                    break;
+            }
+
+            LogToDiscordLogChannel($"Discord: {a.Source}", a.Severity.ToString(), message, col);
+        });
         try
         {
             await client.LoginAsync(Discord.TokenType.Bot, localSettings.Token);

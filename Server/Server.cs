@@ -29,7 +29,7 @@ public class Server {
                 Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
 
-                Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
+                Logger.Notify($"Accepted connection for client {socket.RemoteEndPoint}");
 
                 try {
 #pragma warning disable CS4014
