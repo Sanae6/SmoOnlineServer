@@ -77,6 +77,7 @@ public class Settings {
         [JsonProperty(PropertyName = "LogChannel")]
         public string? AdminChannel { get; set; }
         public bool LogCommands { get; set; } = false;
+        public bool FilterOutNonIssueWarnings { get; set; } = true;
     }
 
     public class ShineTable {

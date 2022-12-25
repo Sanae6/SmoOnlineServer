@@ -72,13 +72,16 @@ public class DiscordBot
         {
             //as time goes on, we may encounter logged info that we literally don't care about. Fill out an if statement to properly
             //filter it out to avoid logging it to discord.
-            if (a.Message.Contains("Server requested a reconnect"))
+            if (localSettings.FilterOutNonIssueWarnings)
             {
-                //This is to filter out this message. This warning is for discord server load balancing and isn't a problem
+                if (a.Message.Contains("Server requested a reconnect"))
+                {
+                    //This is to filter out this message. This warning is for discord server load balancing and isn't a problem
 
-                //Warning[Discord: Gateway] Discord.WebSocket.GatewayReconnectException: Server requested a reconnect
-                //Warning[Discord: Gateway]    at Discord.ConnectionManager.<> c__DisplayClass29_0.<< StartAsync > b__0 > d.MoveNext()
-                return;
+                    //Warning[Discord: Gateway] Discord.WebSocket.GatewayReconnectException: Server requested a reconnect
+                    //Warning[Discord: Gateway]    at Discord.ConnectionManager.<> c__DisplayClass29_0.<< StartAsync > b__0 > d.MoveNext()
+                    return;
+                }
             }
             string message = a.Message + (a.Exception != null ? "Exception: " + a.Exception.ToString() : "");
             ConsoleColor col;
