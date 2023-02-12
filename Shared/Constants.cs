@@ -21,24 +21,4 @@ public static class Constants {
         .ToDictionary(type => type.GetCustomAttribute<PacketAttribute>()!.Type, type => type);
 
     public static int HeaderSize { get; } = PacketHeader.StaticSize;
-
-    public static readonly Dictionary<string, string> MapNames = new Dictionary<string, string>() {
-        {"cap", "CapWorldHomeStage"},
-        {"cascade", "WaterfallWorldHomeStage"},
-        {"sand", "SandWorldHomeStage"},
-        {"lake", "LakeWorldHomeStage"},
-        {"wooded", "ForestWorldHomeStage"},
-        {"cloud", "CloudWorldHomeStage"},
-        {"lost", "ClashWorldHomeStage"},
-        {"metro", "CityWorldHomeStage"},
-        {"sea", "SeaWorldHomeStage"},
-        {"snow", "SnowWorldHomeStage"},
-        {"lunch", "LavaWorldHomeStage"},
-        {"ruined", "BossRaidWorldHomeStage"},
-        {"bowser", "SkyWorldHomeStage"},
-        {"moon", "MoonWorldHomeStage"},
-        {"mush", "PeachWorldHomeStage"},
-        {"dark", "Special1WorldHomeStage"},
-        {"darker", "Special2WorldHomeStage"}
-    };
 }
