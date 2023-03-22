@@ -313,7 +313,8 @@ CommandHandler.RegisterCommand("crash", args => {
     return sb.ToString();
 });
 
-CommandHandler.RegisterCommand("ban", args => { return BanLists.HandleBanCommand(args, (args) => MultiUserCommandHelper(args)); });
+CommandHandler.RegisterCommand("ban",   args => { return BanLists.HandleBanCommand(args, (args) => MultiUserCommandHelper(args)); });
+CommandHandler.RegisterCommand("unban", args => { return BanLists.HandleUnbanCommand(args); });
 
 CommandHandler.RegisterCommand("send", args => {
     const string optionUsage = "Usage: send <stage> <id> <scenario[-1..127]> <player/*>";

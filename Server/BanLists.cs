@@ -94,6 +94,20 @@ public static class BanLists {
     }
 
 
+    private static void UnbanIPv4(Client user) {
+        IPEndPoint? ipv4 = (IPEndPoint?) user.Socket?.RemoteEndPoint;
+        if (ipv4 != null) {
+            UnbanIPv4(ipv4.Address);
+        }
+    }
+    private static void UnbanIPv4(IPAddress ipv4) {
+        UnbanIPv4(ipv4.ToString());
+    }
+    private static void UnbanIPv4(string ipv4) {
+        IPs.Remove(ipv4);
+    }
+
+
     private static void Save() {
         Settings.SaveSettings(true);
     }
@@ -183,6 +197,32 @@ public static class BanLists {
                 CrashMultiple(args, much);
                 Save();
                 return "Banned ip: " + args[0];
+        }
+    }
+
+
+    public static string HandleUnbanCommand(string[] args) {
+        if (args.Length != 2) {
+            return "Usage: unban ip <ipv4-address>";
+        }
+
+        string cmd = args[0];
+        string val = args[1];
+
+        switch (cmd) {
+            default:
+                return "Usage: unban ip <ipv4-address>";
+
+            case "ip":
+                if (!IsIPv4(val)) {
+                    return "Invalid IPv4 address!";
+                }
+                if (!IsIPv4Banned(val)) {
+                    return "IP " + val + " is not banned.";
+                }
+                UnbanIPv4(val);
+                Save();
+                return "Unbanned ip: " + val;
         }
     }
 }
