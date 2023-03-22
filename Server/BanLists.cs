@@ -120,7 +120,7 @@ public static class BanLists {
 
     public static string HandleBanCommand(string[] args, MUCH much) {
         if (args.Length == 0) {
-            return "Usage: ban {player|ip} ...";
+            return "Usage: ban {player|profile|ip} ...";
         }
 
         string cmd = args[0];
@@ -128,7 +128,7 @@ public static class BanLists {
 
         switch (cmd) {
             default:
-                return "Usage: ban {player|ip} ...";
+                return "Usage: ban {player|profile|ip} ...";
 
             case "player":
                 if (args.Length == 0) {
@@ -153,6 +153,21 @@ public static class BanLists {
 
                 Save();
                 return sb.ToString();
+
+            case "profile":
+                if (args.Length != 1) {
+                    return "Usage: ban profile <profile-id>";
+                }
+                if (!Guid.TryParse(args[0], out Guid id)) {
+                    return "Invalid profile ID value!";
+                }
+                if (IsProfileBanned(id)) {
+                    return "Profile " + id.ToString() + " is already banned.";
+                }
+                BanProfile(id);
+                CrashMultiple(args, much);
+                Save();
+                return "Banned profile: " + id.ToString();
 
             case "ip":
                 if (args.Length != 1) {
