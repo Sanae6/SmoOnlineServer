@@ -228,6 +228,7 @@ server.PacketHandler = (c, p) => {
             IEnumerable<Client> search = server.Clients.Where(c => c.Connected && (
                 c.Name.ToLower().StartsWith(arg.ToLower())
                 || (Guid.TryParse(arg, out Guid res) && res == c.Id)
+                || (IPAddress.TryParse(arg, out IPAddress? ip) && ip.Equals(((IPEndPoint) c.Socket!.RemoteEndPoint!).Address))
             ));
             if (!search.Any()) {
                 failToFind.Add(arg); //none found

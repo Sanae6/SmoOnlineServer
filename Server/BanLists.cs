@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 
 using Shared.Packet.Packets;
@@ -24,6 +25,14 @@ public static class BanLists {
         get {
             return Settings.Instance.BanList.Players;
         }
+    }
+
+
+    private static bool IsIPv4(string str) {
+        return IPAddress.TryParse(str, out IPAddress? ip)
+            && ip != null
+            && ip.AddressFamily == AddressFamily.InterNetwork;
+        ;
     }
 
 
@@ -102,10 +111,16 @@ public static class BanLists {
         });
     }
 
+    private static void CrashMultiple(string[] args, MUCH much) {
+        foreach (Client user in much(args).toActUpon) {
+            Crash(user, true);
+        }
+    }
+
 
     public static string HandleBanCommand(string[] args, MUCH much) {
         if (args.Length == 0) {
-            return "Usage: ban player <* | !* (usernames to not ban...) | (usernames to ban...)>";
+            return "Usage: ban {player|ip} ...";
         }
 
         string cmd = args[0];
@@ -113,7 +128,7 @@ public static class BanLists {
 
         switch (cmd) {
             default:
-                return "Usage: ban player <* | !* (usernames to not ban...) | (usernames to ban...)>";
+                return "Usage: ban {player|ip} ...";
 
             case "player":
                 if (args.Length == 0) {
@@ -138,6 +153,21 @@ public static class BanLists {
 
                 Save();
                 return sb.ToString();
+
+            case "ip":
+                if (args.Length != 1) {
+                    return "Usage: ban ip <ipv4-address>";
+                }
+                if (!IsIPv4(args[0])) {
+                    return "Invalid IPv4 address!";
+                }
+                if (IsIPv4Banned(args[0])) {
+                    return "IP " + args[0] + " is already banned.";
+                }
+                BanIPv4(args[0]);
+                CrashMultiple(args, much);
+                Save();
+                return "Banned ip: " + args[0];
         }
     }
 }
