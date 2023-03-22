@@ -107,6 +107,17 @@ public static class BanLists {
         IPs.Remove(ipv4);
     }
 
+    private static void UnbanProfile(Client user) {
+        UnbanProfile(user.Id);
+    }
+    private static void UnbanProfile(string str) {
+        if (!Guid.TryParse(str, out Guid id)) { return; }
+        UnbanProfile(id);
+    }
+    private static void UnbanProfile(Guid id) {
+        Profiles.Remove(id);
+    }
+
 
     private static void Save() {
         Settings.SaveSettings(true);
@@ -203,7 +214,7 @@ public static class BanLists {
 
     public static string HandleUnbanCommand(string[] args) {
         if (args.Length != 2) {
-            return "Usage: unban ip <ipv4-address>";
+            return "Usage: unban {profile|ip} <value>";
         }
 
         string cmd = args[0];
@@ -211,7 +222,18 @@ public static class BanLists {
 
         switch (cmd) {
             default:
-                return "Usage: unban ip <ipv4-address>";
+                return "Usage: unban {profile|ip} <value>";
+
+            case "profile":
+                if (!Guid.TryParse(val, out Guid id)) {
+                    return "Invalid profile ID value!";
+                }
+                if (!IsProfileBanned(id)) {
+                    return "Profile " + id.ToString() + " is not banned.";
+                }
+                UnbanProfile(id);
+                Save();
+                return "Unbanned profile: " + id.ToString();
 
             case "ip":
                 if (!IsIPv4(val)) {
