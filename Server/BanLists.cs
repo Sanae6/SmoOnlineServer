@@ -148,7 +148,7 @@ public static class BanLists {
 
     public static string HandleBanCommand(string[] args, MUCH much) {
         if (args.Length == 0) {
-            return "Usage: ban {enable|disable|player|profile|ip} ...";
+            return "Usage: ban {list|enable|disable|player|profile|ip} ...";
         }
 
         string cmd = args[0];
@@ -156,7 +156,26 @@ public static class BanLists {
 
         switch (cmd) {
             default:
-                return "Usage: ban {enable|disable|player|profile|ip} ...";
+                return "Usage: ban {list|enable|disable|player|profile|ip} ...";
+
+            case "list":
+                if (args.Length != 0) {
+                    return "Usage: ban list";
+                }
+                StringBuilder list = new StringBuilder();
+                list.Append("BanList: " + (Enabled ? "enabled" : "disabled"));
+
+                if (IPs.Count > 0) {
+                    list.Append("\nBanned IPv4 addresses:\n- ");
+                    list.Append(string.Join("\n- ", IPs));
+                }
+
+                if (Profiles.Count > 0) {
+                    list.Append("\nBanned profile IDs:\n- ");
+                    list.Append(string.Join("\n- ", Profiles));
+                }
+
+                return list.ToString();
 
             case "enable":
                 if (args.Length != 0) {
