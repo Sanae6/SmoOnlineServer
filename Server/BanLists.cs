@@ -13,6 +13,9 @@ public static class BanLists {
         get {
             return Settings.Instance.BanList.Enabled;
         }
+        private set {
+            Settings.Instance.BanList.Enabled = value;
+        }
     }
 
     private static List<string> IPs {
@@ -145,7 +148,7 @@ public static class BanLists {
 
     public static string HandleBanCommand(string[] args, MUCH much) {
         if (args.Length == 0) {
-            return "Usage: ban {player|profile|ip} ...";
+            return "Usage: ban {enable|disable|player|profile|ip} ...";
         }
 
         string cmd = args[0];
@@ -153,7 +156,23 @@ public static class BanLists {
 
         switch (cmd) {
             default:
-                return "Usage: ban {player|profile|ip} ...";
+                return "Usage: ban {enable|disable|player|profile|ip} ...";
+
+            case "enable":
+                if (args.Length != 0) {
+                    return "Usage: ban enable";
+                }
+                Enabled = true;
+                Save();
+                return "BanList enabled.";
+
+            case "disable":
+                if (args.Length != 0) {
+                    return "Usage: ban disable";
+                }
+                Enabled = false;
+                Save();
+                return "BanList disabled.";
 
             case "player":
                 if (args.Length == 0) {
