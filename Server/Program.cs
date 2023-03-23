@@ -62,9 +62,6 @@ async Task LoadShines()
 await LoadShines();
 
 server.ClientJoined += (c, _) => {
-    if (BanLists.Enabled && BanLists.IsClientBanned(c)) {
-        throw new Exception($"Banned player attempted join: {c.Name}");
-    }
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = (byte?) 0;

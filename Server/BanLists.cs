@@ -128,6 +128,7 @@ public static class BanLists {
 
 
     public static void Crash(Client user, bool permanent = false) {
+        user.Ignored = true;
         Task.Run(async () => {
             await user.Send(new ChangeStagePacket {
                 Id              = (permanent ? "$agogus/ban4lyfe" : "$among$us/cr4sh%"),
