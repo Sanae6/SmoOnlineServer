@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
+using Shared;
 using Shared.Packet.Packets;
 
 namespace Server;
@@ -27,6 +28,12 @@ public static class BanLists {
     private static ISet<Guid> Profiles {
         get {
             return Settings.Instance.BanList.Players;
+        }
+    }
+
+    private static ISet<string> Stages {
+        get {
+            return Settings.Instance.BanList.Stages;
         }
     }
 
@@ -62,6 +69,10 @@ public static class BanLists {
         return Profiles.Contains(id);
     }
 
+    public static bool IsStageBanned(string stage) {
+        return Stages.Contains(stage);
+    }
+
     public static bool IsClientBanned(Client user) {
         return IsProfileBanned(user) || IsIPv4Banned(user);
     }
@@ -89,6 +100,10 @@ public static class BanLists {
     }
     private static void BanProfile(Guid id) {
         Profiles.Add(id);
+    }
+
+    private static void BanStage(string stage) {
+        Stages.Add(stage);
     }
 
     private static void BanClient(Client user) {
@@ -121,22 +136,36 @@ public static class BanLists {
         Profiles.Remove(id);
     }
 
+    private static void UnbanStage(string stage) {
+        Stages.Remove(stage);
+    }
+
 
     private static void Save() {
         Settings.SaveSettings(true);
     }
 
 
-    public static void Crash(Client user, bool permanent = false) {
+    public static void Crash(
+        Client user,
+        bool permanent    = false,
+        bool dispose_user = true,
+        int  delay_ms     = 0
+    ) {
         user.Ignored = true;
         Task.Run(async () => {
+            if (delay_ms > 0) {
+                await Task.Delay(delay_ms);
+            }
             await user.Send(new ChangeStagePacket {
                 Id              = (permanent ? "$agogus/ban4lyfe" : "$among$us/cr4sh%"),
                 Stage           = (permanent ? "$ejected"         : "$agogusStage"),
                 Scenario        = (sbyte) (permanent ? 69 : 21),
                 SubScenarioType = (byte)  (permanent ? 21 : 69),
             });
-            user.Dispose();
+            if (dispose_user) {
+                user.Dispose();
+            }
         });
     }
 
@@ -149,7 +178,7 @@ public static class BanLists {
 
     public static string HandleBanCommand(string[] args, MUCH much) {
         if (args.Length == 0) {
-            return "Usage: ban {list|enable|disable|player|profile|ip} ...";
+            return "Usage: ban {list|enable|disable|player|profile|ip|stage} ...";
         }
 
         string cmd = args[0];
@@ -157,7 +186,7 @@ public static class BanLists {
 
         switch (cmd) {
             default:
-                return "Usage: ban {list|enable|disable|player|profile|ip} ...";
+                return "Usage: ban {list|enable|disable|player|profile|ip|stage} ...";
 
             case "list":
                 if (args.Length != 0) {
@@ -174,6 +203,11 @@ public static class BanLists {
                 if (Profiles.Count > 0) {
                     list.Append("\nBanned profile IDs:\n- ");
                     list.Append(string.Join("\n- ", Profiles));
+                }
+
+                if (Stages.Count > 0) {
+                    list.Append("\nBanned stages:\n- ");
+                    list.Append(string.Join("\n- ", Stages));
                 }
 
                 return list.ToString();
@@ -247,13 +281,35 @@ public static class BanLists {
                 CrashMultiple(args, much);
                 Save();
                 return "Banned ip: " + args[0];
+
+            case "stage":
+                if (args.Length != 1) {
+                    return "Usage: ban stage <stage-name>";
+                }
+                string? stage = Shared.Stages.Input2Stage(args[0]);
+                if (stage == null) {
+                    return "Invalid stage name!";
+                }
+                if (IsStageBanned(stage)) {
+                    return "Stage " + stage + " is already banned.";
+                }
+                var stages = Shared.Stages
+                    .StagesByInput(args[0])
+                    .Where(s => !IsStageBanned(s))
+                    .ToList()
+                ;
+                foreach (string s in stages) {
+                    BanStage(s);
+                }
+                Save();
+                return "Banned stage: " + string.Join(", ", stages);
         }
     }
 
 
     public static string HandleUnbanCommand(string[] args) {
         if (args.Length != 2) {
-            return "Usage: unban {profile|ip} <value>";
+            return "Usage: unban {profile|ip|stage} <value>";
         }
 
         string cmd = args[0];
@@ -261,7 +317,7 @@ public static class BanLists {
 
         switch (cmd) {
             default:
-                return "Usage: unban {profile|ip} <value>";
+                return "Usage: unban {profile|ip|stage} <value>";
 
             case "profile":
                 if (!Guid.TryParse(val, out Guid id)) {
@@ -284,6 +340,22 @@ public static class BanLists {
                 UnbanIPv4(val);
                 Save();
                 return "Unbanned ip: " + val;
+
+            case "stage":
+                string stage = Shared.Stages.Input2Stage(val) ?? val;
+                if (!IsStageBanned(stage)) {
+                    return "Stage " + stage + " is not banned.";
+                }
+                var stages = Shared.Stages
+                    .StagesByInput(val)
+                    .Where(IsStageBanned)
+                    .ToList()
+                ;
+                foreach (string s in stages) {
+                    UnbanStage(s);
+                }
+                Save();
+                return "Unbanned stage: " + string.Join(", ", stages);
         }
     }
 }

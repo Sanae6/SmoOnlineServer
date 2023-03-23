@@ -11,7 +11,7 @@ public static class Stages {
             return mapName;
         }
         // exact stage value
-        if (Stage2Alias.ContainsKey(input)) {
+        if (IsStage(input)) {
             return input;
         }
         // force input value with a !
@@ -27,6 +27,32 @@ public static class Stages {
           result += item.Key + "  ->  " + item.Value + "\n";
         }
         return result;
+    }
+
+    public static bool IsAlias(string input) {
+        return Alias2Stage.ContainsKey(input);
+    }
+
+    public static bool IsStage(string input) {
+        return Stage2Alias.ContainsKey(input);
+    }
+
+    public static IEnumerable<string> StagesByInput(string input) {
+        if (IsAlias(input)) {
+            var stages = Stage2Alias
+                .Where(e => e.Value == input)
+                .Select(e => e.Key)
+            ;
+            foreach (string stage in stages) {
+                yield return stage;
+            }
+        }
+        else {
+            string? stage = Input2Stage(input);
+            if (stage != null) {
+                yield return stage;
+            }
+        }
     }
 
     public static readonly Dictionary<string, string> Alias2Stage = new Dictionary<string, string>() {

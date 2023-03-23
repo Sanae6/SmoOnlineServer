@@ -113,6 +113,11 @@ float MarioSize(bool is2d) => is2d ? 180 : 160;
 server.PacketHandler = (c, p) => {
     switch (p) {
         case GamePacket gamePacket: {
+            if (BanLists.Enabled && BanLists.IsStageBanned(gamePacket.Stage)) {
+                c.Logger.Warn($"Crashing player for entering banned stage {gamePacket.Stage}.");
+                BanLists.Crash(c, false, false, 500);
+                return false;
+            }
             c.Logger.Info($"Got game packet {gamePacket.Stage}->{gamePacket.ScenarioNum}");
             c.Metadata["scenario"] = gamePacket.ScenarioNum;
             c.Metadata["2d"] = gamePacket.Is2d;
