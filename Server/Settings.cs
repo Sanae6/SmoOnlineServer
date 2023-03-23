@@ -60,13 +60,13 @@ public class Settings {
 
     public class BanListTable {
         public bool Enabled { get; set; } = false;
-        public List<Guid> Players { get; set; } = new List<Guid>();
-        public List<string> IpAddresses { get; set; } = new List<string>();
+        public ISet<Guid> Players { get; set; } = new SortedSet<Guid>();
+        public ISet<string> IpAddresses { get; set; } = new SortedSet<string>();
     }
 
     public class FlipTable {
         public bool Enabled { get; set; } = true;
-        public List<Guid> Players { get; set; } = new List<Guid>();
+        public ISet<Guid> Players { get; set; } = new SortedSet<Guid>();
         public FlipOptions Pov { get; set; } = FlipOptions.Both;
     }
 

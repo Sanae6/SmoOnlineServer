@@ -18,13 +18,13 @@ public static class BanLists {
         }
     }
 
-    private static List<string> IPs {
+    private static ISet<string> IPs {
         get {
             return Settings.Instance.BanList.IpAddresses;
         }
     }
 
-    private static List<Guid> Profiles {
+    private static ISet<Guid> Profiles {
         get {
             return Settings.Instance.BanList.Players;
         }
