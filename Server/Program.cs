@@ -349,19 +349,16 @@ CommandHandler.RegisterCommand("ban", args => {
 
 CommandHandler.RegisterCommand("send", args => {
     const string optionUsage = "Usage: send <stage> <id> <scenario[-1..127]> <player/*>";
-    if (args.Length < 4)
+    if (args.Length < 4) {
         return optionUsage;
+    }
 
-    string stage = args[0];
+    string? stage = Stages.Input2Stage(args[0]);
+    if (stage == null) {
+        return "Invalid Stage Name! ```" + Stages.KingdomAliasMapping() + "```";
+    }
+
     string id = args[1];
-
-    if (Constants.MapNames.TryGetValue(stage.ToLower(), out string? mapName)) {
-        stage = mapName;
-    }
-
-    if (!stage.Contains("Stage") && !stage.Contains("Zone")) {
-        return "Invalid Stage Name! ```cap  ->  Cap Kingdom\ncascade  ->  Cascade Kingdom\nsand  ->  Sand Kingdom\nlake  ->  Lake Kingdom\nwooded  ->  Wooded Kingdom\ncloud  ->  Cloud Kingdom\nlost  ->  Lost Kingdom\nmetro  ->  Metro Kingdom\nsea  ->  Sea Kingdom\nsnow  ->  Snow Kingdom\nlunch  ->  Luncheon Kingdom\nruined  ->  Ruined Kingdom\nbowser  ->  Bowser's Kingdom\nmoon  ->  Moon Kingdom\nmush  ->  Mushroom Kingdom\ndark  ->  Dark Side\ndarker  ->  Darker Side```";
-    }
 
     if (!sbyte.TryParse(args[2], out sbyte scenario) || scenario < -1)
         return $"Invalid scenario number {args[2]} (range: [-1 to 127])";
@@ -384,17 +381,13 @@ CommandHandler.RegisterCommand("send", args => {
 
 CommandHandler.RegisterCommand("sendall", args => {
     const string optionUsage = "Usage: sendall <stage>";
-    if (args.Length < 1)
+    if (args.Length < 1) {
         return optionUsage;
-
-    string stage = args[0];
-
-    if (Constants.MapNames.TryGetValue(stage.ToLower(), out string? mapName)) {
-        stage = mapName;
     }
 
-    if (!stage.Contains("Stage") && !stage.Contains("Zone")) {
-        return "Invalid Stage Name!\ncap  ->  Cap Kingdom\ncascade  ->  Cascade Kingdom\nsand  ->  Sand Kingdom\nlake  ->  Lake Kingdom\nwooded  ->  Wooded Kingdom\ncloud  ->  Cloud Kingdom\nlost  ->  Lost Kingdom\nmetro  ->  Metro Kingdom\nsea  ->  Sea Kingdom\nsnow  ->  Snow Kingdom\nlunch  ->  Luncheon Kingdom\nruined  ->  Ruined Kingdom\nbowser  ->  Bowser's Kingdom\nmoon  ->  Moon Kingdom\nmush  ->  Mushroom Kingdom\ndark  ->  Dark Side\ndarker  ->  Darker Side";
+    string? stage = Stages.Input2Stage(args[0]);
+    if (stage == null) {
+        return "Invalid Stage Name! ```" + Stages.KingdomAliasMapping() + "```";
     }
 
     Client[] players = server.Clients.Where(c => c.Connected).ToArray();
