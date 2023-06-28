@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Shared;
-using Server.LegacyJsonSupport;
 
 namespace Server;
 
