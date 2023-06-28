@@ -74,12 +74,33 @@ public class DiscordBot
             //filter it out to avoid logging it to discord.
             if (localSettings.FilterOutNonIssueWarnings)
             {
-                if (a.Message.Contains("Server requested a reconnect"))
+                //if (a.Message.Contains("Server requested a reconnect"))
+                if (a.Exception?.ToString().Contains("Server requested a reconnect") ?? false)
                 {
                     //This is to filter out this message. This warning is for discord server load balancing and isn't a problem
 
                     //Warning[Discord: Gateway] Discord.WebSocket.GatewayReconnectException: Server requested a reconnect
                     //Warning[Discord: Gateway]    at Discord.ConnectionManager.<> c__DisplayClass29_0.<< StartAsync > b__0 > d.MoveNext()
+                    return;
+                }
+                else if (a.Exception?.ToString().Contains("The remote party closed the WebSocket connection without completing the close handshake.") ?? false)
+                {
+                    //From Discord.NET discord's server, support:
+                    //Discord does this normally and it effects all bots, as long as your bot is reconnecting
+                    //after the error it is expected and should just be ignored.
+
+                    /*{18:21:02 Gateway     System.Exception: WebSocket connection was closed
+   ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.
+   at System.Net.WebSockets.ManagedWebSocket.ThrowIfEOFUnexpected(Boolean throwOnPrematureClosure)
+   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken, Boolean throwOnPrematureClosure)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Threading.Tasks.ValueTask`1.ValueTaskSourceAsTask.<>c.<.cctor>b__4_0(Object state)
+   --- End of stack trace from previous location ---
+   at Discord.Net.WebSockets.DefaultWebSocketClient.RunAsync(CancellationToken cancelToken)
+   --- End of inner exception stack trace ---
+   at Discord.ConnectionManager.<>c__DisplayClass29_0.<<StartAsync>b__0>d.MoveNext()}*/
                     return;
                 }
             }
