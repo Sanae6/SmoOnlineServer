@@ -76,6 +76,17 @@ public class Client : IDisposable {
         await Socket!.SendAsync(data[..(Constants.HeaderSize + header.PacketSize)], SocketFlags.None);
     }
 
+    public void CleanMetadataOnNewConnection() {
+        object? tmp;
+        Metadata.TryRemove("time",              out tmp);
+        Metadata.TryRemove("seeking",           out tmp);
+        Metadata.TryRemove("lastCostumePacket", out tmp);
+        Metadata.TryRemove("lastCapturePacket", out tmp);
+        Metadata.TryRemove("lastTagPacket",     out tmp);
+        Metadata.TryRemove("lastGamePacket",    out tmp);
+        Metadata.TryRemove("lastPlayerPacket",  out tmp);
+    }
+
     public static bool operator ==(Client? left, Client? right) {
         return left is { } leftClient && right is { } rightClient && leftClient.Id == rightClient.Id;
     }

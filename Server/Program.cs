@@ -72,13 +72,6 @@ server.ClientJoined += (c, _) => {
     c.Metadata["scenario"] = (byte?) 0;
     c.Metadata["2d"] = false;
     c.Metadata["speedrun"] = false;
-    foreach (Client client in server.ClientsConnected) {
-        try {
-            c.Send((GamePacket) client.Metadata["lastGamePacket"]!, client).Wait();
-        } catch {
-            // lol who gives a fuck
-        }
-    }
 };
 
 async Task ClientSyncShineBag(Client client) {
@@ -115,13 +108,36 @@ timer.Start();
 
 float MarioSize(bool is2d) => is2d ? 180 : 160;
 
+void flipPlayer(Client c, ref PlayerPacket pp) {
+    pp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]!);
+    pp.Rotation *= (
+        Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
+      * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI))
+    );
+};
+
+void logError(Task x) {
+    if (x.Exception != null) {
+        consoleLogger.Error(x.Exception.ToString());
+    }
+};
+
 server.PacketHandler = (c, p) => {
     switch (p) {
         case GamePacket gamePacket: {
             c.Logger.Info($"Got game packet {gamePacket.Stage}->{gamePacket.ScenarioNum}");
+
+            // reset lastPlayerPacket on stage changes
+            object? old = null;
+            c.Metadata.TryGetValue("lastGamePacket", out old);
+            if (old != null && ((GamePacket) old).Stage != gamePacket.Stage) {
+                c.Metadata["lastPlayerPacket"] = null;
+            }
+
             c.Metadata["scenario"] = gamePacket.ScenarioNum;
             c.Metadata["2d"] = gamePacket.Is2d;
             c.Metadata["lastGamePacket"] = gamePacket;
+
             switch (gamePacket.Stage) {
                 case "CapWorldHomeStage" when gamePacket.ScenarioNum == 0:
                     c.Metadata["speedrun"] = true;
@@ -145,8 +161,7 @@ server.PacketHandler = (c, p) => {
                 server.BroadcastReplace(gamePacket, c, (from, to, gp) => {
                     gp.ScenarioNum = (byte?) to.Metadata["scenario"] ?? 200;
 #pragma warning disable CS4014
-                    to.Send(gp, from)
-                        .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+                    to.Send(gp, from).ContinueWith(logError);
 #pragma warning restore CS4014
                 });
                 return false;
@@ -156,14 +171,23 @@ server.PacketHandler = (c, p) => {
         }
 
         case TagPacket tagPacket: {
+            // c.Logger.Info($"Got tag packet: {tagPacket.IsIt}");
+            c.Metadata["lastTagPacket"] = tagPacket;
             if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
             if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0)
                 c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
             break;
         }
 
+        case CapturePacket capturePacket: {
+            // c.Logger.Info($"Got capture packet: {capturePacket.ModelName}");
+            c.Metadata["lastCapturePacket"] = capturePacket;
+            break;
+        }
+
         case CostumePacket costumePacket:
             c.Logger.Info($"Got costume packet: {costumePacket.BodyName}, {costumePacket.CapName}");
+            c.Metadata["lastCostumePacket"] = costumePacket;
             c.CurrentCostume = costumePacket;
 #pragma warning disable CS4014
             ClientSyncShineBag(c); //no point logging since entire def has try/catch
@@ -183,33 +207,35 @@ server.PacketHandler = (c, p) => {
             break;
         }
 
-        case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
-                                            && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
-                                            && Settings.Instance.Flip.Players.Contains(c.Id): {
-            playerPacket.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]!);
-            playerPacket.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
-                                     * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
+        case PlayerPacket playerPacket: {
+            c.Metadata["lastPlayerPacket"] = playerPacket;
+            // flip for all
+            if (   Settings.Instance.Flip.Enabled
+                && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Others
+                && Settings.Instance.Flip.Players.Contains(c.Id)
+            ) {
+                flipPlayer(c, ref playerPacket);
 #pragma warning disable CS4014
-            server.Broadcast(playerPacket, c)
-                .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+                server.Broadcast(playerPacket, c).ContinueWith(logError);
 #pragma warning restore CS4014
-            return false;
-        }
-        case PlayerPacket playerPacket when Settings.Instance.Flip.Enabled
-                                            && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Self
-                                            && !Settings.Instance.Flip.Players.Contains(c.Id): {
-            server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
-                if (Settings.Instance.Flip.Players.Contains(to.Id)) {
-                    sp.Position += Vector3.UnitY * MarioSize((bool) c.Metadata["2d"]!);
-                    sp.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationX(MathF.PI))
-                                   * Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateRotationY(MathF.PI));
-                }
+                return false;
+            }
+            // flip only for specific clients
+            if (   Settings.Instance.Flip.Enabled
+                && Settings.Instance.Flip.Pov is FlipOptions.Both or FlipOptions.Self
+                && !Settings.Instance.Flip.Players.Contains(c.Id)
+            ) {
+                server.BroadcastReplace(playerPacket, c, (from, to, sp) => {
+                    if (Settings.Instance.Flip.Players.Contains(to.Id)) {
+                        flipPlayer(c, ref sp);
+                    }
 #pragma warning disable CS4014
-                to.Send(sp, from)
-                .ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+                    to.Send(sp, from).ContinueWith(logError);
 #pragma warning restore CS4014
-            });
-            return false;
+                });
+                return false;
+            }
+            break;
         }
     }
 
@@ -651,7 +677,7 @@ Task.Run(() => {
             }
         }
     }
-}).ContinueWith(x => { if (x.Exception != null) { consoleLogger.Error(x.Exception.ToString()); } });
+}).ContinueWith(logError);
 #pragma warning restore CS4014
 
 await server.Listen(cts.Token);
