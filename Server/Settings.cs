@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Shared;
+using Server.LegacyJsonSupport;
 
 namespace Server;
 
@@ -74,7 +75,8 @@ public class Settings {
         public string? Token { get; set; }
         public string Prefix { get; set; } = "$";
         public string? CommandChannel { get; set; }
-        [JsonProperty(PropertyName = "LogChannel")]
+        [JsonProperty(PropertyName = "AdminChannel")]
+        [JsonConverter(typeof(LogToAdminJsonConverter))]
         public string? AdminChannel { get; set; }
         public bool LogCommands { get; set; } = false;
         public bool FilterOutNonIssueWarnings { get; set; } = true;
