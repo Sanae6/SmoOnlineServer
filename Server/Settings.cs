@@ -74,8 +74,13 @@ public class Settings {
         public string? Token { get; set; }
         public string Prefix { get; set; } = "$";
         public string? CommandChannel { get; set; }
-        [JsonProperty(PropertyName = "LogChannel")]
+        //This funkyness is to migrate the JSON "LogChannel" to "AdminChannel"
         public string? AdminChannel { get; set; }
+        [JsonProperty(PropertyName = "LogChannel")]
+        public string? LogChannel 
+        {
+            set => AdminChannel = value;
+        }
         public bool LogCommands { get; set; } = false;
         public bool FilterOutNonIssueWarnings { get; set; } = true;
     }

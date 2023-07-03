@@ -12,7 +12,6 @@ public class DiscordBot
     private readonly Logger logger = new Logger("Discord");
     private Settings.DiscordTable localSettings = Settings.Instance.Discord;
     private DiscordSocketClient? client = null;
-    //private SocketTextChannel? commandChannel = null;
     private SocketTextChannel? logChannel = null;
     private bool firstInitTriggered = false;
 
@@ -74,37 +73,22 @@ public class DiscordBot
             //filter it out to avoid logging it to discord.
             if (localSettings.FilterOutNonIssueWarnings)
             {
-                //if (a.Message.Contains("Server requested a reconnect"))
-                if (a.Exception?.ToString().Contains("Server requested a reconnect") ?? false)
+                string[] disinterestedMessages =
+                { //these messages happen sometimes, and are of no concern.
+                    "Server requested a reconnect",
+                    "The remote party closed the WebSocket connection without completing the close handshake",
+                    "without listening to any events related to that intent, consider removing the intent from"
+                };
+                foreach (string dis in disinterestedMessages)
                 {
-                    //This is to filter out this message. This warning is for discord server load balancing and isn't a problem
-
-                    //Warning[Discord: Gateway] Discord.WebSocket.GatewayReconnectException: Server requested a reconnect
-                    //Warning[Discord: Gateway]    at Discord.ConnectionManager.<> c__DisplayClass29_0.<< StartAsync > b__0 > d.MoveNext()
-                    return;
-                }
-                else if (a.Exception?.ToString().Contains("The remote party closed the WebSocket connection without completing the close handshake.") ?? false)
-                {
-                    //From Discord.NET discord's server, support:
-                    //Discord does this normally and it effects all bots, as long as your bot is reconnecting
-                    //after the error it is expected and should just be ignored.
-
-                    /*{18:21:02 Gateway     System.Exception: WebSocket connection was closed
-   ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.
-   at System.Net.WebSockets.ManagedWebSocket.ThrowIfEOFUnexpected(Boolean throwOnPrematureClosure)
-   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken, Boolean throwOnPrematureClosure)
-   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
-   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
-   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
-   at System.Threading.Tasks.ValueTask`1.ValueTaskSourceAsTask.<>c.<.cctor>b__4_0(Object state)
-   --- End of stack trace from previous location ---
-   at Discord.Net.WebSockets.DefaultWebSocketClient.RunAsync(CancellationToken cancelToken)
-   --- End of inner exception stack trace ---
-   at Discord.ConnectionManager.<>c__DisplayClass29_0.<<StartAsync>b__0>d.MoveNext()}*/
-                    return;
+                    if ((a.Exception?.ToString().Contains(dis) ?? false) ||
+                         (a.Message?.Contains(dis) ?? false))
+                    {
+                        return;
+                    }
                 }
             }
-            string message = a.Message + (a.Exception != null ? "Exception: " + a.Exception.ToString() : "");
+            string message = a.Message ?? string.Empty + (a.Exception != null ? "Exception: " + a.Exception.ToString() : ""); //TODO: this crashes
             ConsoleColor col;
             switch (a.Severity)
             {
@@ -138,7 +122,6 @@ public class DiscordBot
             await wait.WaitAsync();
             //we need to wait for the ready event before we can do any of this nonsense.
             logChannel = (ulong.TryParse(localSettings.AdminChannel, out ulong lcid) ? (client != null ? await client.GetChannelAsync(lcid) : null) : null) as SocketTextChannel;
-            //commandChannel = (ulong.TryParse(localSettings.CommandChannel, out ulong ccid) ? (client != null ? await client.GetChannelAsync(ccid) : null) : null) as SocketTextChannel;
             client!.MessageReceived += (m) => HandleCommandAsync(m);
             logger.Info("Discord bot has been initialized.");
         }
@@ -159,7 +142,6 @@ public class DiscordBot
         catch { /*lol (lmao)*/ }
         client = null;
         logChannel = null;
-        //commandChannel = null;
         localSettings = Settings.Instance.Discord;
     }
 
@@ -177,7 +159,7 @@ public class DiscordBot
                         foreach (string mesg in SplitMessage(Logger.PrefixNewLines(text, $"{level} [{source}]"), 1994)) //room for 6 '`'
                             await logChannel.SendMessageAsync($"```{mesg}```");
                         break;
-                    case ConsoleColor.Yellow:
+                    case ConsoleColor.Yellow: //this is actually light blue now (discord changed it awhile ago).
                         foreach (string mesg in SplitMessage(Logger.PrefixNewLines(text, $"{level} [{source}]"), 1990)) //room for 6 '`', "fix" and "\n"
                             await logChannel.SendMessageAsync($"```fix\n{mesg}```");
                         break;
@@ -267,12 +249,6 @@ public class DiscordBot
         }
     }
 
-    private async Task WeGotRateLimitedLBozo(IRateLimitInfo info)
-    {
-        //this is spamming because apparently this is called for more than just rate limiting.
-        //await Console.Error.WriteLineAsync("We got rate limited!");
-    }
-
     private static List<string> SplitMessage(string message, int maxSizePerElem = 2000)
     {
         List<string> result = new List<string>();
@@ -287,159 +263,4 @@ public class DiscordBot
     {
         Stop();
     }
-
-    #region Old
-    //private DiscordClient? DiscordClient;
-    //private string? Token;
-    //private Settings.DiscordTable Config => Settings.Instance.Discord;
-    //private string Prefix => Config.Prefix;
-    //private readonly Logger Logger = new Logger("Discord");
-    //private DiscordChannel? CommandChannel;
-    //private DiscordChannel? LogChannel;
-    //private bool Reconnecting;
-
-    //public DiscordBot() {
-    //    Token = Config.Token;
-    //    Logger.AddLogHandler(Log);
-    //    CommandHandler.RegisterCommand("dscrestart", _ => {
-    //        // this should be async'ed but i'm lazy
-    //        Reconnecting = true;
-    //        Task.Run(Reconnect);
-    //        return "Restarting Discord bot";
-    //    });
-    //    if (Config.Token == null) return;
-    //    if (Config.CommandChannel == null)
-    //        Logger.Warn("You probably should set your CommandChannel in settings.json");
-    //    if (Config.LogChannel == null)
-    //        Logger.Warn("You probably should set your LogChannel in settings.json");
-    //    Settings.LoadHandler += SettingsLoadHandler;
-    //}
-
-    //private async Task Reconnect() {
-    //    if (DiscordClient != null) // usually null prop works, not here though...`
-    //        await DiscordClient.DisconnectAsync();
-    //    await Run();
-    //}
-
-    //private async void SettingsLoadHandler() {
-    //    if (DiscordClient == null || Token != Config.Token) {
-    //        await Run();
-    //    }
-
-    //    if (DiscordClient == null) {
-    //        Logger.Error(new NullReferenceException("Discord client not setup yet!"));
-    //        return;
-    //    }
-
-    //    if (Config.CommandChannel != null) {
-    //        try {
-    //            CommandChannel = await DiscordClient.GetChannelAsync(ulong.Parse(Config.CommandChannel));
-    //        } catch (Exception e) {
-    //            Logger.Error($"Failed to get command channel \"{Config.CommandChannel}\"");
-    //            Logger.Error(e);
-    //        }
-    //    }
-
-    //    if (Config.LogChannel != null) {
-    //        try {
-    //            LogChannel = await DiscordClient.GetChannelAsync(ulong.Parse(Config.LogChannel));
-    //        } catch (Exception e) {
-    //            Logger.Error($"Failed to get log channel \"{Config.LogChannel}\"");
-    //            Logger.Error(e);
-    //        }
-    //    }
-    //}
-
-    //private static List<string> SplitMessage(string message, int maxSizePerElem = 2000)
-    //{
-    //    List<string> result = new List<string>();
-    //    for (int i = 0; i < message.Length; i += maxSizePerElem) 
-    //    {
-    //        result.Add(message.Substring(i, message.Length - i < maxSizePerElem ? message.Length - i : maxSizePerElem));
-    //    }
-    //    return result;
-    //}
-
-    //private async void Log(string source, string level, string text, ConsoleColor _) {
-    //    try {
-    //        if (DiscordClient != null && LogChannel != null) {
-    //            foreach (string mesg in SplitMessage(Logger.PrefixNewLines(text, $"{level} [{source}]"), 1994)) //room for 6 '`'
-    //                await DiscordClient.SendMessageAsync(LogChannel, $"```{mesg}```");
-    //        }
-    //    } catch (Exception e) {
-    //        // don't log again, it'll just stack overflow the server!
-    //        if (Reconnecting) return; // skip if reconnecting
-    //        await Console.Error.WriteLineAsync("Exception in discord logger");
-    //        await Console.Error.WriteLineAsync(e.ToString());
-    //    }
-    //}
-
-    //public async Task Run() {
-    //    Token = Config.Token;
-    //    DiscordClient?.Dispose();
-    //    if (Config.Token == null) {
-    //        DiscordClient = null;
-    //        return;
-    //    }
-
-    //    try {
-    //        DiscordClient = new DiscordClient(new DiscordConfiguration {
-    //            Token = Config.Token,
-    //            MinimumLogLevel = LogLevel.None
-    //        });
-    //        await DiscordClient.ConnectAsync(new DiscordActivity("Hide and Seek", ActivityType.Competing));
-    //        SettingsLoadHandler();
-    //        Logger.Info(
-    //            $"Discord bot logged in as {DiscordClient.CurrentUser.Username}#{DiscordClient.CurrentUser.Discriminator}");
-    //        Reconnecting = false;
-    //        string mentionPrefix = $"{DiscordClient.CurrentUser.Mention}";
-    //        DiscordClient.MessageCreated += async (_, args) => {
-    //            if (args.Author.IsCurrent) return; //dont respond to commands from ourselves (prevent "sql-injection" esq attacks)
-    //            //prevent commands via dm and non-public channels
-    //            if (CommandChannel == null) {
-    //                if (args.Channel is DiscordDmChannel)
-    //                    return; //no dm'ing the bot allowed!
-    //            }
-    //            else if (args.Channel.Id != CommandChannel.Id && (LogChannel != null && args.Channel.Id != LogChannel.Id))
-    //                return;
-    //            //run command
-    //            try {
-    //                DiscordMessage msg = args.Message;
-    //                string? resp = null;
-    //                if (string.IsNullOrEmpty(Prefix)) {
-    //                    await msg.Channel.TriggerTypingAsync();
-    //                    resp = string.Join('\n', CommandHandler.GetResult(msg.Content).ReturnStrings);
-    //                } else if (msg.Content.StartsWith(Prefix)) {
-    //                    await msg.Channel.TriggerTypingAsync();
-    //                    resp = string.Join('\n', CommandHandler.GetResult(msg.Content[Prefix.Length..]).ReturnStrings);
-    //                } else if (msg.Content.StartsWith(mentionPrefix)) {
-    //                    await msg.Channel.TriggerTypingAsync();
-    //                    resp = string.Join('\n', CommandHandler.GetResult(msg.Content[mentionPrefix.Length..].TrimStart()).ReturnStrings);
-    //                }
-    //                if (resp != null)
-    //                {
-    //                    foreach (string mesg in SplitMessage(resp))
-    //                        await msg.RespondAsync(mesg);
-    //                }
-    //            } catch (Exception e) {
-    //                Logger.Error(e);
-    //            }
-    //        };
-    //        DiscordClient.ClientErrored += (_, args) => {
-    //            Logger.Error("Discord client caught an error in handler!");
-    //            Logger.Error(args.Exception);
-    //            return Task.CompletedTask;
-    //        };
-    //        DiscordClient.SocketErrored += (_, args) => {
-    //            Logger.Error("This is probably that stupid bug again!");
-    //            Logger.Error("Discord client caught an error on socket!");
-    //            Logger.Error(args.Exception);
-    //            return Task.CompletedTask;
-    //        };
-    //    } catch (Exception e) {
-    //        Logger.Error("Exception occurred in discord runner!");
-    //        Logger.Error(e);
-    //    }
-    //}
-    #endregion
 }
