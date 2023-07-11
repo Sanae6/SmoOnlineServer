@@ -37,6 +37,9 @@ public class DiscordBot
         Logger.AddLogHandler(LogToDiscordLogChannel);
     }
 
+    //this nonsense is to prevent race conditions from starting multiple bots.
+    //this would be a great thing to instead simply have an "await Init()" put
+    //in the ctor (but awaits can't be there), and Task.Wait shouldn't be used that way.
     private object firstInitLockObj = new object();
     public async Task FirstInit()
     {

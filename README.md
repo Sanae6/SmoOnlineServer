@@ -82,7 +82,7 @@ Banlist: banned people are unable to join the server, default: false
 PersistShines/Moons: Allows the server to remember moon progress across crashes/restarts  
 
 ### Discord
-Note: Token, LogChannel and CommandChannel need to have quotes "" around it  
+Note: Token, AdminChannel (formerly known as "LogChannel") and CommandChannel need to have quotes "" around it  
 Token: the token of the bot you want to load into, default: null  
 Prefix: the bot prefix to be used, default: $  
 CommandChannel: allows discord commands, default: null
