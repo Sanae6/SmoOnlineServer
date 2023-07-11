@@ -113,8 +113,6 @@ public class DiscordBot
         });
         try
         {
-            await client.LoginAsync(Discord.TokenType.Bot, localSettings.Token);
-            await client.StartAsync();
             SemaphoreSlim wait = new SemaphoreSlim(0);
 #pragma warning disable CS1998
             client.Ready += async () =>
@@ -122,6 +120,8 @@ public class DiscordBot
             {
                 wait.Release();
             };
+            await client.LoginAsync(Discord.TokenType.Bot, localSettings.Token);
+            await client.StartAsync();
             await wait.WaitAsync();
             //we need to wait for the ready event before we can do any of this nonsense.
             logChannel = (ulong.TryParse(localSettings.AdminChannel, out ulong lcid) ? (client != null ? await client.GetChannelAsync(lcid) : null) : null) as SocketTextChannel;
