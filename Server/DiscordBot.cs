@@ -136,7 +136,10 @@ public class DiscordBot
         try
         {
             if (client != null)
-                client.StopAsync().Wait();
+            {
+                if (!client.StopAsync().Wait(60000))
+                    logger.Warn("Tried to stop the discord bot, but attempt took >60 seconds, so it failed!");
+            }
             client?.Dispose();
         }
         catch { /*lol (lmao)*/ }
@@ -237,7 +240,7 @@ public class DiscordBot
         if (localSettings.CommandChannel == null)
             logger.Warn("You probably should set your CommandChannel in settings.json");
         if (localSettings.AdminChannel == null)
-            logger.Warn("You probably should set your LogChannel in settings.json");
+            logger.Warn("You probably should set your AdminChannel in settings.json");
 
         if (oldSettings.Token != localSettings.Token || oldSettings.AdminChannel != localSettings.AdminChannel || oldSettings.CommandChannel != localSettings.CommandChannel)
         {
