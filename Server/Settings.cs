@@ -71,6 +71,7 @@ public class Settings {
     }
 
     public class DiscordTable {
+        public bool Enabled { get; set; } = true;
         public string? Token { get; set; }
         public string Prefix { get; set; } = "$";
         public string? CommandChannel { get; set; }

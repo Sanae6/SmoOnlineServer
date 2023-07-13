@@ -30,9 +30,10 @@ public class DiscordBot
                 Init();
 #pragma warning restore CS4014
             });
-            return "Restarting Discord bot...";
+            return localSettings.Enabled ? "Restarting Discord bot..." : "The discord bot is disabled in settings.json (no action was taken).";
         });
-        logger.Info("Starting discord bot (ctor)");
+        if (localSettings.Enabled)
+            logger.Info("Starting discord bot (ctor)");
         Settings.LoadHandler += OnLoadSettings;
         Logger.AddLogHandler(LogToDiscordLogChannel);
     }
@@ -54,9 +55,10 @@ public class DiscordBot
 
     private async Task Init()
     {
-        if (client != null)
+        if (client != null || !localSettings.Enabled)
         {
-            return; //this is bad if the client ever crashes and isn't reassigned to null, but we don't want multiple instances of the bot running at the same time.
+            return; //Either: the discord bot is disabled, or: this is bad if the client ever crashes and
+                    //isn't reassigned to null, but we don't want multiple instances of the bot running at the same time.
         }
         if (localSettings.Token == null || (localSettings.AdminChannel == null && localSettings.CommandChannel == null))
         {
