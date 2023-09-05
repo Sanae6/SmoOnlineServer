@@ -62,11 +62,6 @@ async Task LoadShines()
 await LoadShines();
 
 server.ClientJoined += (c, _) => {
-    if (Settings.Instance.BanList.Enabled
-        && (Settings.Instance.BanList.Players.Contains(c.Id)
-            || Settings.Instance.BanList.IpAddresses.Contains(
-                ((IPEndPoint) c.Socket!.RemoteEndPoint!).Address.ToString())))
-        throw new Exception($"Banned player attempted join: {c.Name}");
     c.Metadata["shineSync"] = new ConcurrentBag<int>();
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = (byte?) 0;
@@ -125,6 +120,11 @@ void logError(Task x) {
 server.PacketHandler = (c, p) => {
     switch (p) {
         case GamePacket gamePacket: {
+            if (BanLists.Enabled && BanLists.IsStageBanned(gamePacket.Stage)) {
+                c.Logger.Warn($"Crashing player for entering banned stage {gamePacket.Stage}.");
+                BanLists.Crash(c, false, false, 500);
+                return false;
+            }
             c.Logger.Info($"Got game packet {gamePacket.Stage}->{gamePacket.ScenarioNum}");
 
             // reset lastPlayerPacket on stage changes
@@ -246,38 +246,49 @@ server.PacketHandler = (c, p) => {
     HashSet<string> failToFind = new();
     HashSet<Client> toActUpon;
     List<(string arg, IEnumerable<string> amb)> ambig = new();
-    if (args[0] == "*")
+    if (args[0] == "*") {
         toActUpon = new(server.Clients.Where(c => c.Connected));
+    }
     else {
         toActUpon = args[0] == "!*" ? new(server.Clients.Where(c => c.Connected)) : new();
         for (int i = (args[0] == "!*" ? 1 : 0); i < args.Length; i++) {
             string arg = args[i];
-            IEnumerable<Client> search = server.Clients.Where(c => c.Connected &&
-                (c.Name.ToLower().StartsWith(arg.ToLower()) || (Guid.TryParse(arg, out Guid res) && res == c.Id)));
-            if (!search.Any())
+            IEnumerable<Client> search = server.Clients.Where(c => c.Connected && (
+                c.Name.ToLower().StartsWith(arg.ToLower())
+                || (Guid.TryParse(arg, out Guid res) && res == c.Id)
+                || (IPAddress.TryParse(arg, out IPAddress? ip) && ip.Equals(((IPEndPoint) c.Socket!.RemoteEndPoint!).Address))
+            ));
+            if (!search.Any()) {
                 failToFind.Add(arg); //none found
+            }
             else if (search.Count() > 1) {
                 Client? exact = search.FirstOrDefault(x => x.Name == arg);
                 if (!ReferenceEquals(exact, null)) {
                     //even though multiple matches, since exact match, it isn't ambiguous
-                    if (args[0] == "!*")
+                    if (args[0] == "!*") {
                         toActUpon.Remove(exact);
-                    else
+                    }
+                    else {
                         toActUpon.Add(exact);
+                    }
                 }
                 else {
-                    if (!ambig.Any(x => x.arg == arg))
+                    if (!ambig.Any(x => x.arg == arg)) {
                         ambig.Add((arg, search.Select(x => x.Name))); //more than one match
-                    foreach (var rem in search.ToList()) //need copy because can't remove from list while iterating over it
+                    }
+                    foreach (var rem in search.ToList()) { //need copy because can't remove from list while iterating over it
                         toActUpon.Remove(rem);
+                    }
                 }
             }
             else {
                 //only one match, so autocomplete
-                if (args[0] == "!*")
+                if (args[0] == "!*") {
                     toActUpon.Remove(search.First());
-                else
+                }
+                else {
                     toActUpon.Add(search.First());
+                }
             }
         }
     }
@@ -324,54 +335,14 @@ CommandHandler.RegisterCommand("crash", args => {
     }
 
     foreach (Client user in res.toActUpon) {
-        Task.Run(async () => {
-            await user.Send(new ChangeStagePacket {
-                Id = "$among$us/SubArea",
-                Stage = "$agogusStage",
-                Scenario = 21,
-                SubScenarioType = 69 // invalid id
-            });
-            user.Dispose();
-        });
+        BanLists.Crash(user);
     }
 
     return sb.ToString();
 });
 
-CommandHandler.RegisterCommand("ban", args => {
-    if (args.Length == 0) {
-        return "Usage: ban <* | !* (usernames to not ban...) | (usernames to ban...)>";
-    }
-
-    var res = MultiUserCommandHelper(args);
-
-    StringBuilder sb = new StringBuilder();
-    sb.Append(res.toActUpon.Count > 0 ? "Banned: " + string.Join(", ", res.toActUpon.Select(x => $"\"{x.Name}\"")) : "");
-    sb.Append(res.failToFind.Count > 0 ? "\nFailed to find matches for: " + string.Join(", ", res.failToFind.Select(x => $"\"{x.ToLower()}\"")) : "");
-    if (res.ambig.Count > 0) {
-        res.ambig.ForEach(x => {
-            sb.Append($"\nAmbiguous for \"{x.arg}\": {string.Join(", ", x.amb.Select(x => $"\"{x}\""))}");
-        });
-    }
-
-    foreach (Client user in res.toActUpon) {
-        Task.Run(async () => {
-            await user.Send(new ChangeStagePacket {
-                Id = "$agogus/banned4lyfe",
-                Stage = "$ejected",
-                Scenario = 69,
-                SubScenarioType = 21 // invalid id
-            });
-            IPEndPoint? endpoint = (IPEndPoint?) user.Socket?.RemoteEndPoint;
-            Settings.Instance.BanList.Players.Add(user.Id);
-            if (endpoint != null) Settings.Instance.BanList.IpAddresses.Add(endpoint.ToString());
-            user.Dispose();
-        });
-    }
-
-    Settings.SaveSettings();
-    return sb.ToString();
-});
+CommandHandler.RegisterCommand("ban",   args => { return BanLists.HandleBanCommand(args, (args) => MultiUserCommandHelper(args)); });
+CommandHandler.RegisterCommand("unban", args => { return BanLists.HandleUnbanCommand(args); });
 
 CommandHandler.RegisterCommand("send", args => {
     const string optionUsage = "Usage: send <stage> <id> <scenario[-1..127]> <player/*>";

@@ -29,6 +29,11 @@ public class Server {
                 Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
 
+                if (BanLists.Enabled && BanLists.IsIPv4Banned(((IPEndPoint) socket.RemoteEndPoint!).Address!)) {
+                    Logger.Warn($"Ignoring banned IPv4 address {socket.RemoteEndPoint}");
+                    continue;
+                }
+
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
                 try {
@@ -167,6 +172,11 @@ public class Server {
                         break;
                 }
 
+                if (client.Ignored) {
+                    memory.Dispose();
+                    continue;
+                }
+
                 // connection initialization
                 if (first) {
                     first = false;
@@ -174,7 +184,17 @@ public class Server {
 
                     ConnectPacket connect = new ConnectPacket();
                     connect.Deserialize(memory.Memory.Span[packetRange]);
+
                     bool wasFirst = connect.ConnectionType == ConnectPacket.ConnectionTypes.FirstConnection;
+
+                    if (BanLists.Enabled && BanLists.IsProfileBanned(header.Id)) {
+                        client.Id      = header.Id;
+                        client.Name    = connect.ClientName;
+                        client.Ignored = true;
+                        client.Logger.Warn($"Ignoring banned profile ID {header.Id}");
+                        memory.Dispose();
+                        continue;
+                    }
 
                     lock (Clients) {
                         if (Clients.Count(x => x.Connected) == Settings.Instance.Server.MaxPlayers) {
