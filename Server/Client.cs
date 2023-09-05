@@ -12,6 +12,7 @@ namespace Server;
 public class Client : IDisposable {
     public readonly ConcurrentDictionary<string, object?> Metadata = new ConcurrentDictionary<string, object?>(); // can be used to store any information about a player
     public bool Connected = false;
+    public bool Ignored = false;
     public CostumePacket? CurrentCostume = null; // required for proper client sync
     public string Name {
         get => Logger.Name;
@@ -74,6 +75,17 @@ public class Client : IDisposable {
         }
 
         await Socket!.SendAsync(data[..(Constants.HeaderSize + header.PacketSize)], SocketFlags.None);
+    }
+
+    public void CleanMetadataOnNewConnection() {
+        object? tmp;
+        Metadata.TryRemove("time",              out tmp);
+        Metadata.TryRemove("seeking",           out tmp);
+        Metadata.TryRemove("lastCostumePacket", out tmp);
+        Metadata.TryRemove("lastCapturePacket", out tmp);
+        Metadata.TryRemove("lastTagPacket",     out tmp);
+        Metadata.TryRemove("lastGamePacket",    out tmp);
+        Metadata.TryRemove("lastPlayerPacket",  out tmp);
     }
 
     public static bool operator ==(Client? left, Client? right) {
