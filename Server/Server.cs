@@ -185,6 +185,8 @@ public class Server {
                     ConnectPacket connect = new ConnectPacket();
                     connect.Deserialize(memory.Memory.Span[packetRange]);
 
+                    bool wasFirst = connect.ConnectionType == ConnectPacket.ConnectionTypes.FirstConnection;
+
                     if (BanLists.Enabled && BanLists.IsProfileBanned(header.Id)) {
                         client.Id      = header.Id;
                         client.Name    = connect.ClientName;
