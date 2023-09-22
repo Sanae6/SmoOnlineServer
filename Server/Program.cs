@@ -66,13 +66,13 @@ server.ClientJoined += (c, _) => {
     c.Metadata["loadedSave"] = false;
     c.Metadata["scenario"] = (byte?) 0;
     c.Metadata["2d"] = false;
-    c.Metadata["speedrun"] = false;
+    c.Metadata["disableShineSync"] = false;
 };
 
 async Task ClientSyncShineBag(Client client) {
     if (!Settings.Instance.Shines.Enabled) return;
     try {
-        if ((bool?) client.Metadata["speedrun"] ?? false) return;
+        if ((bool?) client.Metadata["disableShineSync"] ?? false) return;
         ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (client.Metadata["shineSync"] ??= new ConcurrentBag<int>());
         foreach (int shine in shineBag.Except(clientBag).Except(Settings.Instance.Shines.Excluded).ToArray()) {
             if (!client.Connected) return;
@@ -148,21 +148,28 @@ server.PacketHandler = (c, p) => {
             c.Metadata["lastGamePacket"] = gamePacket;
 
             switch (gamePacket.Stage) {
-                case "CapWorldHomeStage" when gamePacket.ScenarioNum == 0:
-                    c.Metadata["speedrun"] = true;
-                    ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
-                    shineBag.Clear();
-                    c.Logger.Info("Entered Cap on new save, preventing moon sync until Cascade");
+                case "CapWorldHomeStage"  when gamePacket.ScenarioNum == 1:
+                case "CapWorldTowerStage" when gamePacket.ScenarioNum == 1:
+                    if (!((bool?) c.Metadata["disableShineSync"] ?? false)) {
+                        c.Metadata["disableShineSync"] = true;
+                        ((ConcurrentBag<int>) (c.Metadata["shineSync"] ??= new ConcurrentBag<int>())).Clear();
+                        c.Logger.Info("Entered Cap on new save, preventing moon sync until Cascade");
+                        if (Settings.Instance.Shines.ClearOnNewSaves) {
+                            shineBag.Clear();
+                            c.Logger.Info("Cleared shine bags");
+                            Task.Run(PersistShines);
+                        }
+                    }
                     break;
-                case "WaterfallWorldHomeStage":
-                    bool wasSpeedrun = (bool) c.Metadata["speedrun"]!;
-                    c.Metadata["speedrun"] = false;
-                    if (wasSpeedrun)
+                default:
+                    if ((bool?) c.Metadata["disableShineSync"] ?? false) {
                         Task.Run(async () => {
-                            c.Logger.Info("Entered Cascade with moon sync disabled, enabling moon sync");
-                            await Task.Delay(15000);
+                            c.Logger.Info("Entered Cascade or later with moon sync disabled, enabling moon sync again");
+                            await Task.Delay(2000);
+                            c.Metadata["disableShineSync"] = false;
                             await ClientSyncShineBag(c);
                         });
+                    }
                     break;
             }
 
@@ -589,9 +596,7 @@ CommandHandler.RegisterCommand("shine", args => {
             );
         case "clear" when args.Length == 1:
             shineBag.Clear();
-            Task.Run(async () => {
-                await PersistShines();
-            });
+            Task.Run(PersistShines);
 
             foreach (ConcurrentBag<int> playerBag in server.Clients.Select(serverClient =>
                 (ConcurrentBag<int>)serverClient.Metadata["shineSync"]!)) playerBag?.Clear();
