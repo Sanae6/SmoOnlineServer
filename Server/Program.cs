@@ -172,7 +172,6 @@ server.PacketHandler = (c, p) => {
 
         case TagPacket tagPacket: {
             // c.Logger.Info($"Got tag packet: {tagPacket.IsIt}");
-            c.Metadata["lastTagPacket"] = tagPacket;
             if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
             if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0)
                 c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);

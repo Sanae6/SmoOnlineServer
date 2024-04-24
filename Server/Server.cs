@@ -349,22 +349,26 @@ public class Server {
     }
 
     private async Task ResendPackets(Client client) {
-        async Task trySend<T>(Client other, string packetType) where T : struct, IPacket {
-            if (! other.Metadata.ContainsKey(packetType)) { return; }
+        async Task trySendPack<T>(Client other, T? packet) where T : struct, IPacket {
+            if (packet == null) { return; }
             try {
-                await client.Send((T) other.Metadata[packetType]!, other);
+                await client.Send((T) packet, other);
             }
             catch {
                 // lol who gives a fuck
             }
         };
+        async Task trySendMeta<T>(Client other, string packetType) where T : struct, IPacket {
+            if (! other.Metadata.ContainsKey(packetType)) { return; }
+            await trySendPack<T>(other, (T) other.Metadata[packetType]!);
+        };
         await Parallel.ForEachAsync(this.ClientsConnected, async (other, _) => {
             if (client.Id == other.Id) { return; }
-            await trySend<CostumePacket>(other, "lastCostumePacket");
-            await trySend<CapturePacket>(other, "lastCapturePacket");
-            await trySend<TagPacket>(other, "lastTagPacket");
-            await trySend<GamePacket>(other, "lastGamePacket");
-            await trySend<PlayerPacket>(other, "lastPlayerPacket");
+            await trySendMeta<CostumePacket>(other, "lastCostumePacket");
+            await trySendMeta<CapturePacket>(other, "lastCapturePacket");
+            await trySendPack<TagPacket>(other, other.GetTagPacket());
+            await trySendMeta<GamePacket>(other, "lastGamePacket");
+            await trySendMeta<PlayerPacket>(other, "lastPlayerPacket");
         });
     }
 

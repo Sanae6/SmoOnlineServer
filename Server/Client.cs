@@ -83,9 +83,20 @@ public class Client : IDisposable {
         Metadata.TryRemove("seeking",           out tmp);
         Metadata.TryRemove("lastCostumePacket", out tmp);
         Metadata.TryRemove("lastCapturePacket", out tmp);
-        Metadata.TryRemove("lastTagPacket",     out tmp);
         Metadata.TryRemove("lastGamePacket",    out tmp);
         Metadata.TryRemove("lastPlayerPacket",  out tmp);
+    }
+
+    public TagPacket? GetTagPacket() {
+        var time = (Time?) this.Metadata?["time"];
+        var seek = (bool?) this.Metadata?["seeking"];
+        if (time == null && seek == null) { return null; }
+        return new TagPacket {
+            UpdateType = (seek != null ? TagPacket.TagUpdate.State : 0) | (time != null ? TagPacket.TagUpdate.Time: 0),
+            IsIt       = seek ?? false,
+            Seconds    = (byte)   (time?.Seconds ?? 0),
+            Minutes    = (ushort) (time?.Minutes ?? 0),
+        };
     }
 
     public static bool operator ==(Client? left, Client? right) {
