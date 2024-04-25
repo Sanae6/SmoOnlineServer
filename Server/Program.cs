@@ -74,7 +74,7 @@ async Task ClientSyncShineBag(Client client) {
     try {
         if ((bool?) client.Metadata["speedrun"] ?? false) return;
         ConcurrentBag<int> clientBag = (ConcurrentBag<int>) (client.Metadata["shineSync"] ??= new ConcurrentBag<int>());
-        foreach (int shine in shineBag.Except(clientBag).ToArray()) {
+        foreach (int shine in shineBag.Except(clientBag).Except(Settings.Instance.Shines.Excluded).ToArray()) {
             if (!client.Connected) return;
             await client.Send(new ShinePacket {
                 ShineId = shine
@@ -196,6 +196,10 @@ server.PacketHandler = (c, p) => {
 
         case ShinePacket shinePacket: {
             if (!Settings.Instance.Shines.Enabled) return false;
+            if (Settings.Instance.Shines.Excluded.Contains(shinePacket.ShineId)) {
+                c.Logger.Info($"Got moon {shinePacket.ShineId} (excluded)");
+                return false;
+            }
             if (c.Metadata["loadedSave"] is false) break;
             ConcurrentBag<int> playerBag = (ConcurrentBag<int>)c.Metadata["shineSync"]!;
             shineBag.Add(shinePacket.ShineId);
@@ -558,12 +562,16 @@ CommandHandler.RegisterCommand("flip", args => {
 });
 
 CommandHandler.RegisterCommand("shine", args => {
-    const string optionUsage = "Valid options: list, clear, sync, send, set";
+    const string optionUsage = "Valid options: list, clear, sync, send, set, include, exclude";
     if (args.Length < 1)
         return optionUsage;
     switch (args[0]) {
         case "list" when args.Length == 1:
-            return $"Shines: {string.Join(", ", shineBag)}";
+            return $"Shines: {string.Join(", ", shineBag)}" + (
+                Settings.Instance.Shines.Excluded.Count() > 0
+                ? "\nExcluded Shines: " + string.Join(", ", Settings.Instance.Shines.Excluded)
+                : ""
+            );
         case "clear" when args.Length == 1:
             shineBag.Clear();
             Task.Run(async () => {
@@ -598,6 +606,21 @@ CommandHandler.RegisterCommand("shine", args => {
                 return result ? "Enabled shine sync" : "Disabled shine sync";
             }
 
+            return optionUsage;
+        }
+        case "exclude" when args.Length == 2:
+        case "include" when args.Length == 2: {
+            if (int.TryParse(args[1], out int sid)) {
+                if (args[0] == "exclude") {
+                    Settings.Instance.Shines.Excluded.Add(sid);
+                    Settings.SaveSettings();
+                    return $"Exclude shine {sid} from syncing.";
+                } else {
+                    Settings.Instance.Shines.Excluded.Remove(sid);
+                    Settings.SaveSettings();
+                    return $"No longer exclude shine {sid} from syncing.";
+                }
+            }
             return optionUsage;
         }
         default:
