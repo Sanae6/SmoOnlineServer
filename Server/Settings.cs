@@ -80,6 +80,7 @@ public class Settings {
 
     public class ShineTable {
         public bool Enabled { get; set; } = true;
+        public ISet<int> Excluded { get; set; } = new SortedSet<int> { 496 };
     }
 
     public class PersistShinesTable
