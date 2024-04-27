@@ -101,8 +101,8 @@ public class Client : IDisposable {
     }
 
     public TagPacket? GetTagPacket() {
-        var time = (Time?) this.Metadata?["time"];
-        var seek = (bool?) this.Metadata?["seeking"];
+        var time = (Time?) (this.Metadata.ContainsKey("time")    ? this.Metadata["time"]    : null);
+        var seek = (bool?) (this.Metadata.ContainsKey("seeking") ? this.Metadata["seeking"] : null);
         if (time == null && seek == null) { return null; }
         return new TagPacket {
             UpdateType = (seek != null ? TagPacket.TagUpdate.State : 0) | (time != null ? TagPacket.TagUpdate.Time: 0),
