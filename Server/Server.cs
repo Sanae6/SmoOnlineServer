@@ -29,12 +29,6 @@ public class Server {
                 Socket socket = token.HasValue ? await serverSocket.AcceptAsync(token.Value) : await serverSocket.AcceptAsync();
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
 
-                // is the IPv4 address banned?
-                if (BanLists.Enabled && BanLists.IsIPv4Banned(((IPEndPoint) socket.RemoteEndPoint!).Address!)) {
-                    Logger.Warn($"Ignoring banned IPv4 address {socket.RemoteEndPoint}");
-                    continue;
-                }
-
                 Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
 
                 // start sub thread to handle client
@@ -80,7 +74,7 @@ public class Server {
     public delegate void PacketReplacer<in T>(Client from, Client to, T value); // replacer must send
 
     public void BroadcastReplace<T>(T packet, Client sender, PacketReplacer<T> packetReplacer) where T : struct, IPacket {
-        foreach (Client client in Clients.Where(client => client.Connected && sender.Id != client.Id)) {
+        foreach (Client client in Clients.Where(c => c.Connected && !c.Ignored && sender.Id != c.Id)) {
             packetReplacer(sender, client, packet);
         }
     }
@@ -97,7 +91,7 @@ public class Server {
     }
 
     public Task Broadcast<T>(T packet) where T : struct, IPacket {
-        return Task.WhenAll(Clients.Where(c => c.Connected).Select(async client => {
+        return Task.WhenAll(Clients.Where(c => c.Connected && !c.Ignored).Select(async client => {
             IMemoryOwner<byte> memory = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + packet.Size);
             PacketHeader header = new PacketHeader {
                 Id         = client.Id,
@@ -116,7 +110,7 @@ public class Server {
     /// <param name="data">Memory owner to dispose once done</param>
     /// <param name="sender">Optional sender to not broadcast data to</param>
     public async Task Broadcast(IMemoryOwner<byte> data, Client? sender = null) {
-        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => client.Send(data.Memory, sender)));
+        await Task.WhenAll(Clients.Where(c => c.Connected && !c.Ignored && c != sender).Select(client => client.Send(data.Memory, sender)));
         data.Dispose();
     }
 
@@ -126,7 +120,7 @@ public class Server {
     /// <param name="data">Memory to send to the clients</param>
     /// <param name="sender">Optional sender to not broadcast data to</param>
     public async void Broadcast(Memory<byte> data, Client? sender = null) {
-        await Task.WhenAll(Clients.Where(c => c.Connected && c != sender).Select(client => client.Send(data, sender)));
+        await Task.WhenAll(Clients.Where(c => c.Connected && !c.Ignored && c != sender).Select(client => client.Send(data, sender)));
     }
 
     public Client? FindExistingClient(Guid id) {
@@ -175,10 +169,6 @@ public class Server {
                         break;
                     }
                 }
-                if (client.Ignored) {
-                    memory.Dispose();
-                    continue;
-                }
 
                 // connection initialization
                 if (first) {
@@ -195,18 +185,29 @@ public class Server {
                     client.Id   = header.Id;
                     client.Name = connect.ClientName;
 
-                    // is the profile ID banned?
-                    if (BanLists.Enabled && BanLists.IsProfileBanned(client.Id)) {
+                    // is the IPv4 address banned?
+                    if (BanLists.Enabled && BanLists.IsIPv4Banned(((IPEndPoint) socket.RemoteEndPoint!).Address!)) {
+                        Logger.Warn($"Ignoring banned IPv4 address for {client.Name} ({client.Id}/{remote})");
                         client.Ignored = true;
-                        client.Logger.Warn($"Ignoring banned profile ID {client.Id}");
+                        client.Banned  = true;
+                    }
+                    // is the profile ID banned?
+                    else if (BanLists.Enabled && BanLists.IsProfileBanned(client.Id)) {
+                        client.Logger.Warn($"Ignoring banned profile ID for {client.Name} ({client.Id}/{remote})");
+                        client.Ignored = true;
+                        client.Banned  = true;
+                    }
+
+                    // send server init (required to crash ignored players later)
+                    await client.Send(new InitPacket {
+                        MaxPlayers = (client.Ignored ? (ushort) 1 : Settings.Instance.Server.MaxPlayers),
+                    });
+
+                    // don't init or announce an ignored client to other players any further
+                    if (client.Ignored) {
                         memory.Dispose();
                         continue;
                     }
-
-                    // send server init
-                    await client.Send(new InitPacket {
-                        MaxPlayers = Settings.Instance.Server.MaxPlayers,
-                    });
 
                     bool wasFirst = connect.ConnectionType == ConnectPacket.ConnectionTypes.FirstConnection;
 

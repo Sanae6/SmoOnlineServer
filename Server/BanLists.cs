@@ -148,30 +148,27 @@ public static class BanLists {
 
     public static void Crash(
         Client user,
-        bool permanent    = false,
-        bool dispose_user = true,
-        int  delay_ms     = 0
+        int  delay_ms  = 0
     ) {
         user.Ignored = true;
         Task.Run(async () => {
             if (delay_ms > 0) {
                 await Task.Delay(delay_ms);
             }
+            bool permanent = user.Banned;
             await user.Send(new ChangeStagePacket {
                 Id              = (permanent ? "$agogus/ban4lyfe" : "$among$us/cr4sh%"),
                 Stage           = (permanent ? "$ejected"         : "$agogusStage"),
                 Scenario        = (sbyte) (permanent ? 69 : 21),
                 SubScenarioType = (byte)  (permanent ? 21 : 69),
             });
-            if (dispose_user) {
-                user.Dispose();
-            }
         });
     }
 
     private static void CrashMultiple(string[] args, MUCH much) {
         foreach (Client user in much(args).toActUpon) {
-            Crash(user, true);
+            user.Banned = true;
+            Crash(user);
         }
     }
 
@@ -245,8 +242,9 @@ public static class BanLists {
                 }
 
                 foreach (Client user in res.toActUpon) {
+                    user.Banned = true;
                     BanClient(user);
-                    Crash(user, true);
+                    Crash(user);
                 }
 
                 Save();

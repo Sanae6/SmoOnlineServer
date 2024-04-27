@@ -13,6 +13,7 @@ public class Client : IDisposable {
     public readonly ConcurrentDictionary<string, object?> Metadata = new ConcurrentDictionary<string, object?>(); // can be used to store any information about a player
     public bool Connected = false;
     public bool Ignored = false;
+    public bool Banned = false;
     public CostumePacket? CurrentCostume = null; // required for proper client sync
     public string Name {
         get => Logger.Name;
@@ -52,6 +53,11 @@ public class Client : IDisposable {
 
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
         try {
+            // don't send most packets to ignored players
+            if (Ignored && packetAttribute.Type != PacketType.Init && packetAttribute.Type != PacketType.ChangeStage) {
+                memory.Dispose();
+                return;
+            }
             Server.FillPacket(new PacketHeader {
                 Id         = sender?.Id ?? Id,
                 Type       = packetAttribute.Type,
@@ -71,8 +77,13 @@ public class Client : IDisposable {
         PacketHeader header = new PacketHeader();
         header.Deserialize(data.Span);
 
-        if (!Connected && header.Type is not PacketType.Connect) {
+        if (!Connected && !Ignored && header.Type != PacketType.Connect) {
             Server.Logger.Error($"Didn't send {header.Type} to {Id} because they weren't connected yet");
+            return;
+        }
+
+        // don't send most packets to ignored players
+        if (Ignored && header.Type != PacketType.Init && header.Type != PacketType.ChangeStage) {
             return;
         }
 

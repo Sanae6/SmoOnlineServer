@@ -120,10 +120,17 @@ void logError(Task x) {
 server.PacketHandler = (c, p) => {
     switch (p) {
         case GamePacket gamePacket: {
+            // crash ignored player
+            if (c.Ignored) {
+                c.Logger.Info($"Crashing ignored player after entering stage {gamePacket.Stage}.");
+                BanLists.Crash(c, 500);
+                return false;
+            }
+
             // crash player entering a banned stage
             if (BanLists.Enabled && BanLists.IsStageBanned(gamePacket.Stage)) {
                 c.Logger.Warn($"Crashing player for entering banned stage {gamePacket.Stage}.");
-                BanLists.Crash(c, false, false, 500);
+                BanLists.Crash(c, 500);
                 return false;
             }
 
@@ -170,6 +177,11 @@ server.PacketHandler = (c, p) => {
             }
 
             break;
+        }
+
+        // ignore all other packets from ignored players
+        case IPacket pack when c.Ignored: {
+            return false;
         }
 
         case TagPacket tagPacket: {
