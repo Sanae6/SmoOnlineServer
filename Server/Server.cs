@@ -138,9 +138,6 @@ public class Server {
         Client client = new Client(socket) {Server = this};
         var remote = socket.RemoteEndPoint;
         IMemoryOwner<byte> memory = null!;
-        await client.Send(new InitPacket {
-            MaxPlayers = Settings.Instance.Server.MaxPlayers
-        });
 
         bool first = true;
         try {
@@ -205,6 +202,11 @@ public class Server {
                         memory.Dispose();
                         continue;
                     }
+
+                    // send server init
+                    await client.Send(new InitPacket {
+                        MaxPlayers = Settings.Instance.Server.MaxPlayers,
+                    });
 
                     bool wasFirst = connect.ConnectionType == ConnectPacket.ConnectionTypes.FirstConnection;
 
