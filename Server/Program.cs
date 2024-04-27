@@ -120,11 +120,13 @@ void logError(Task x) {
 server.PacketHandler = (c, p) => {
     switch (p) {
         case GamePacket gamePacket: {
+            // crash player entering a banned stage
             if (BanLists.Enabled && BanLists.IsStageBanned(gamePacket.Stage)) {
                 c.Logger.Warn($"Crashing player for entering banned stage {gamePacket.Stage}.");
                 BanLists.Crash(c, false, false, 500);
                 return false;
             }
+
             c.Logger.Info($"Got game packet {gamePacket.Stage}->{gamePacket.ScenarioNum}");
 
             // reset lastPlayerPacket on stage changes
@@ -184,7 +186,7 @@ server.PacketHandler = (c, p) => {
             break;
         }
 
-        case CostumePacket costumePacket:
+        case CostumePacket costumePacket: {
             c.Logger.Info($"Got costume packet: {costumePacket.BodyName}, {costumePacket.CapName}");
             c.Metadata["lastCostumePacket"] = costumePacket;
             c.CurrentCostume = costumePacket;
@@ -193,6 +195,7 @@ server.PacketHandler = (c, p) => {
 #pragma warning restore CS4014
             c.Metadata["loadedSave"] = true;
             break;
+        }
 
         case ShinePacket shinePacket: {
             if (!Settings.Instance.Shines.Enabled) return false;

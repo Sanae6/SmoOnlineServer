@@ -41,8 +41,9 @@ public class Client : IDisposable {
     }
 
     public void Dispose() {
-        if (Socket?.Connected is true)
+        if (Socket?.Connected is true) {
             Socket.Disconnect(false);
+        }
     }
 
 
@@ -52,8 +53,8 @@ public class Client : IDisposable {
         PacketAttribute packetAttribute = Constants.PacketMap[typeof(T)];
         try {
             Server.FillPacket(new PacketHeader {
-                Id = sender?.Id ?? Id,
-                Type = packetAttribute.Type,
+                Id         = sender?.Id ?? Id,
+                Type       = packetAttribute.Type,
                 PacketSize = packet.Size
             }, packet, memory.Memory);
         }
@@ -69,6 +70,7 @@ public class Client : IDisposable {
     public async Task Send(Memory<byte> data, Client? sender) {
         PacketHeader header = new PacketHeader();
         header.Deserialize(data.Span);
+
         if (!Connected && header.Type is not PacketType.Connect) {
             Server.Logger.Error($"Didn't send {header.Type} to {Id} because they weren't connected yet");
             return;
