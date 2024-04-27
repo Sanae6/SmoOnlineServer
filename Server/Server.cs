@@ -197,6 +197,11 @@ public class Server {
                         client.Ignored = true;
                         client.Banned  = true;
                     }
+                    // is the server full?
+                    else if (Clients.Count(x => x.Connected) >= Settings.Instance.Server.MaxPlayers) {
+                        client.Logger.Error($"Ignoring player {client.Name} ({client.Id}/{remote}) as server reached max players of {Settings.Instance.Server.MaxPlayers}");
+                        client.Ignored = true;
+                    }
 
                     // send server init (required to crash ignored players later)
                     await client.Send(new InitPacket {
@@ -213,11 +218,12 @@ public class Server {
 
                     // add client to the set of connected players
                     lock (Clients) {
-                         // is the server full?
-                        if (Clients.Count(x => x.Connected) == Settings.Instance.Server.MaxPlayers) {
-                            client.Logger.Error($"Turned away as server is at max clients");
+                        // is the server full? (check again, to prevent race conditions)
+                        if (Clients.Count(x => x.Connected) >= Settings.Instance.Server.MaxPlayers) {
+                            client.Logger.Error($"Ignoring player {client.Name} ({client.Id}/{remote}) as server reached max players of {Settings.Instance.Server.MaxPlayers}");
+                            client.Ignored = true;
                             memory.Dispose();
-                            goto disconnect;
+                            continue;
                         }
 
                         // detect and handle reconnections
@@ -354,7 +360,6 @@ public class Server {
         }
 
         // client disconnected
-        disconnect:
         if (client.Name != "Unknown User" && client.Id != Guid.Parse("00000000-0000-0000-0000-000000000000")) {
             Logger.Info($"Client {remote} ({client.Name}/{client.Id}) disconnected from the server");
         }
