@@ -72,10 +72,19 @@ public class Settings {
     }
 
     public class DiscordTable {
+        public bool Enabled { get; set; } = true;
         public string? Token { get; set; }
         public string Prefix { get; set; } = "$";
         public string? CommandChannel { get; set; }
-        public string? LogChannel { get; set; }
+        //This funkyness is to migrate the JSON "LogChannel" to "AdminChannel"
+        public string? AdminChannel { get; set; }
+        [JsonProperty(PropertyName = "LogChannel")]
+        public string? LogChannel 
+        {
+            set => AdminChannel = value;
+        }
+        public bool LogCommands { get; set; } = false;
+        public bool FilterOutNonIssueWarnings { get; set; } = true;
     }
 
     public class ShineTable {

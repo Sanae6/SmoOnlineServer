@@ -14,7 +14,7 @@ CancellationTokenSource cts = new CancellationTokenSource();
 bool restartRequested = false;
 Logger consoleLogger = new Logger("Console");
 DiscordBot bot = new DiscordBot();
-await bot.Run();
+await bot.FirstInit();
 
 async Task PersistShines()
 {

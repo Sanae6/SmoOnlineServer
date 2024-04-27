@@ -34,7 +34,7 @@ public class Server {
                     continue;
                 }
 
-                Logger.Warn($"Accepted connection for client {socket.RemoteEndPoint}");
+                Logger.Notify($"Accepted connection for client {socket.RemoteEndPoint}");
 
                 try {
 #pragma warning disable CS4014

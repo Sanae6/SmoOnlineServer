@@ -9,6 +9,8 @@ public class Logger {
 
     public string Name { get; set; }
 
+    public void Notify(string text) => Handler?.Invoke(Name, "Info", text, ConsoleColor.Green);
+
     public void Info(string text) => Handler?.Invoke(Name, "Info", text, ConsoleColor.White);
 
     public void Warn(string text) => Handler?.Invoke(Name, "Warn", text, ConsoleColor.Yellow);
