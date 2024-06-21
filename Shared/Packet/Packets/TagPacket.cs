@@ -15,14 +15,14 @@ public struct TagPacket : IPacket {
         MemoryMarshal.Write(data, ref UpdateType);
         MemoryMarshal.Write(data[1..], ref IsIt);
         MemoryMarshal.Write(data[2..], ref Seconds);
-        MemoryMarshal.Write(data[4..], ref Minutes);
+        MemoryMarshal.Write(data[3..], ref Minutes);
     }
 
     public void Deserialize(ReadOnlySpan<byte> data) {
         UpdateType = MemoryMarshal.Read<TagUpdate>(data);
         IsIt = MemoryMarshal.Read<bool>(data[1..]);
         Seconds = MemoryMarshal.Read<byte>(data[2..]);
-        Minutes = MemoryMarshal.Read<ushort>(data[4..]);
+        Minutes = MemoryMarshal.Read<ushort>(data[3..]);
     }
 
     [Flags]
