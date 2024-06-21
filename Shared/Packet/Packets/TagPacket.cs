@@ -9,7 +9,7 @@ public struct TagPacket : IPacket {
     public byte Seconds;
     public ushort Minutes;
 
-    public short Size => 6;
+    public short Size => 5;
 
     public void Serialize(Span<byte> data) {
         MemoryMarshal.Write(data, ref UpdateType);
