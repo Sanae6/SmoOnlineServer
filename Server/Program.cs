@@ -483,12 +483,17 @@ CommandHandler.RegisterCommand("tag", args => {
             if (!bool.TryParse(args[2], out bool seeking)) return $"Usage: tag seeking {args[1]} <true/false>";
             TagPacket tagPacket = new TagPacket {
                 UpdateType = TagPacket.TagUpdate.State,
-                IsIt = seeking
+                IsIt       = seeking,
             };
-            if (args[1] == "*")
-                server.Broadcast(tagPacket);
-            else
-                client?.Send(tagPacket);
+            if (args[1] == "*") {
+                Parallel.ForEachAsync(server.Clients, async (client, _) => {
+                    await server.Broadcast(tagPacket, client);
+                    await client.Send(tagPacket);
+                });
+            } else if (client != null) {
+                server.Broadcast(tagPacket, client);
+                client.Send(tagPacket);
+            }
             return $"Set {(args[1] == "*" ? "everyone" : args[1])} to {(seeking ? "seeker" : "hider")}";
         }
         case "start" when args.Length > 2: {
