@@ -490,17 +490,22 @@ CommandHandler.RegisterCommand("tag", args => {
                 int realTime = 1000 * time;
                 await Task.Delay(realTime);
                 await Task.WhenAll(
-                    Parallel.ForEachAsync(seekers, async (seeker, _) =>
-                        await server.Broadcast(new TagPacket {
+                    Parallel.ForEachAsync(seekers, async (seeker, _) => {
+                        TagPacket packet = new TagPacket {
                             UpdateType = TagPacket.TagUpdate.State,
-                            IsIt = true
-                        }, seeker)),
-                    Parallel.ForEachAsync(server.Clients.Except(seekers), async (hider, _) =>
-                        await server.Broadcast(new TagPacket {
+                            IsIt       = true,
+                        };
+                        await server.Broadcast(packet, seeker);
+                        await seeker.Send(packet);
+                    }),
+                    Parallel.ForEachAsync(server.Clients.Except(seekers), async (hider, _) => {
+                        TagPacket packet = new TagPacket {
                             UpdateType = TagPacket.TagUpdate.State,
-                            IsIt = false
-                        }, hider)
-                    )
+                            IsIt       = false,
+                        };
+                        await server.Broadcast(packet, hider);
+                        await hider.Send(packet);
+                    })
                 );
                 consoleLogger.Info($"Started game with seekers {string.Join(", ", seekerNames)}");
             });
