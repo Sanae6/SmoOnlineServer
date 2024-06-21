@@ -456,13 +456,18 @@ CommandHandler.RegisterCommand("tag", args => {
                 return $"Invalid time for seconds {args[3]} (range: 0-59)";
             TagPacket tagPacket = new TagPacket {
                 UpdateType = TagPacket.TagUpdate.Time,
-                Minutes = minutes,
-                Seconds = seconds
+                Minutes    = minutes,
+                Seconds    = seconds,
             };
-            if (args[1] == "*")
-                server.Broadcast(tagPacket);
-            else
-                client?.Send(tagPacket);
+            if (args[1] == "*") {
+                Parallel.ForEachAsync(server.Clients, async (client, _) => {
+                    await server.Broadcast(tagPacket, client);
+                    await client.Send(tagPacket);
+                });
+            } else if (client != null) {
+                server.Broadcast(tagPacket, client);
+                client.Send(tagPacket);
+            }
             return $"Set time for {(args[1] == "*" ? "everyone" : args[1])} to {minutes}:{seconds}";
         }
         case "seeking" when args.Length == 3: {
