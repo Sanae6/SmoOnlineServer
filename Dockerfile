@@ -1,7 +1,7 @@
 ################################################################################
 ##################################################################   build   ###
 
-FROM  --platform=linux/amd64  mcr.microsoft.com/dotnet/sdk:6.0  as  build
+FROM  --platform=${BUILDPLATFORM}  mcr.microsoft.com/dotnet/sdk:6.0  AS  build
 
 WORKDIR  /app/
 
@@ -34,7 +34,7 @@ RUN  dotnet  publish  \
 ################################################################################
 ################################################################   runtime   ###
 
-FROM  mcr.microsoft.com/dotnet/runtime:6.0  as  runtime
+FROM  mcr.microsoft.com/dotnet/runtime:6.0  AS  runtime
 
 # Copy application binary from build stage
 COPY  --from=build  /app/out/  /app/
