@@ -92,6 +92,7 @@ public class Client : IDisposable {
 
     public void CleanMetadataOnNewConnection() {
         object? tmp;
+        Metadata.TryRemove("gameMode",          out tmp);
         Metadata.TryRemove("time",              out tmp);
         Metadata.TryRemove("seeking",           out tmp);
         Metadata.TryRemove("lastCostumePacket", out tmp);
@@ -101,10 +102,19 @@ public class Client : IDisposable {
     }
 
     public TagPacket? GetTagPacket() {
+        var gmode = (GameMode?) (this.Metadata.ContainsKey("gameMode") ? this.Metadata["gameMode"] : null);
+        if (gmode == null) { return null; }
+        if (   gmode != GameMode.Legacy
+            && gmode != GameMode.HideAndSeek
+            && gmode != GameMode.Sardines
+        ) { return null; }
+
         var time = (Time?) (this.Metadata.ContainsKey("time")    ? this.Metadata["time"]    : null);
         var seek = (bool?) (this.Metadata.ContainsKey("seeking") ? this.Metadata["seeking"] : null);
         if (time == null && seek == null) { return null; }
+
         return new TagPacket {
+            GameMode   = (GameMode) gmode,
             UpdateType = (seek != null ? TagPacket.TagUpdate.State : 0) | (time != null ? TagPacket.TagUpdate.Time: 0),
             IsIt       = seek ?? false,
             Seconds    = (byte)   (time?.Seconds ?? 0),

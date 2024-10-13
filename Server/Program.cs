@@ -192,10 +192,23 @@ server.PacketHandler = (c, p) => {
         }
 
         case TagPacket tagPacket: {
-            // c.Logger.Info($"Got tag packet: {tagPacket.IsIt}");
-            if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) c.Metadata["seeking"] = tagPacket.IsIt;
-            if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0)
-                c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
+            if (  (tagPacket.GameMode == GameMode.Legacy && tagPacket.UpdateType == TagPacket.TagUpdate.Both)
+                || tagPacket.GameMode == GameMode.HideAndSeek
+                || tagPacket.GameMode == GameMode.Sardines
+            ) {
+                // c.Logger.Info($"Got tag packet: {tagPacket.GameMode} {tagPacket.UpdateType} {tagPacket.IsIt} {tagPacket.Minutes}:{tagPacket.Seconds}");
+                if ((tagPacket.UpdateType & TagPacket.TagUpdate.State) != 0) {
+                    c.Metadata["seeking"] = tagPacket.IsIt;
+                }
+                if ((tagPacket.UpdateType & TagPacket.TagUpdate.Time) != 0) {
+                    c.Metadata["time"] = new Time(tagPacket.Minutes, tagPacket.Seconds, DateTime.Now);
+                }
+            } else {
+                // c.Logger.Info($"Got tag packet: {tagPacket.GameMode} {(byte) tagPacket.UpdateType}");
+                c.Metadata["seeking"] = null;
+                c.Metadata["time"]    = null;
+            }
+            c.Metadata["gameMode"] = tagPacket.GameMode;
             break;
         }
 
@@ -462,6 +475,7 @@ CommandHandler.RegisterCommand("tag", args => {
             if (!byte.TryParse(args[3], out byte seconds) || seconds >= 60)
                 return $"Invalid time for seconds {args[3]} (range: 0-59)";
             TagPacket tagPacket = new TagPacket {
+                GameMode   = GameMode.Legacy,
                 UpdateType = TagPacket.TagUpdate.Time,
                 Minutes    = minutes,
                 Seconds    = seconds,
@@ -482,6 +496,7 @@ CommandHandler.RegisterCommand("tag", args => {
             Client? client = server.Clients.FirstOrDefault(x => x.Name == args[1]);
             if (!bool.TryParse(args[2], out bool seeking)) return $"Usage: tag seeking {args[1]} <true/false>";
             TagPacket tagPacket = new TagPacket {
+                GameMode   = GameMode.Legacy,
                 UpdateType = TagPacket.TagUpdate.State,
                 IsIt       = seeking,
             };
@@ -509,6 +524,7 @@ CommandHandler.RegisterCommand("tag", args => {
                 await Task.WhenAll(
                     Parallel.ForEachAsync(seekers, async (seeker, _) => {
                         TagPacket packet = new TagPacket {
+                            GameMode   = GameMode.Legacy,
                             UpdateType = TagPacket.TagUpdate.State,
                             IsIt       = true,
                         };
@@ -517,6 +533,7 @@ CommandHandler.RegisterCommand("tag", args => {
                     }),
                     Parallel.ForEachAsync(server.Clients.Except(seekers), async (hider, _) => {
                         TagPacket packet = new TagPacket {
+                            GameMode   = GameMode.Legacy,
                             UpdateType = TagPacket.TagUpdate.State,
                             IsIt       = false,
                         };

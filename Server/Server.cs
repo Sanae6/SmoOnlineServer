@@ -408,7 +408,8 @@ public class Server {
 
     private async Task SendEmptyPackets(Client client, Client other) {
         await other.Send(new TagPacket {
-            UpdateType = TagPacket.TagUpdate.State | TagPacket.TagUpdate.Time,
+            GameMode   = GameMode.Legacy,
+            UpdateType = TagPacket.TagUpdate.Both,
             IsIt       = false,
             Seconds    = 0,
             Minutes    = 0,
