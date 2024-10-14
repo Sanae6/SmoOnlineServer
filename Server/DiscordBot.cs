@@ -242,11 +242,6 @@ public class DiscordBot
         Settings.DiscordTable oldSettings = localSettings;
         localSettings = Settings.Instance.Discord;
 
-        if (localSettings.CommandChannel == null)
-            logger.Warn("You probably should set your CommandChannel in settings.json");
-        if (localSettings.AdminChannel == null)
-            logger.Warn("You probably should set your AdminChannel in settings.json");
-
         if (oldSettings.Token != localSettings.Token || oldSettings.AdminChannel != localSettings.AdminChannel || oldSettings.CommandChannel != localSettings.CommandChannel)
         {
             //start over fresh (there might be a more intelligent way to do this without restarting the bot if only the log/command channel changed, but I'm lazy.
