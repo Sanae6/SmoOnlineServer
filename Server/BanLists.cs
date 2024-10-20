@@ -217,6 +217,11 @@ public static class BanLists {
                     list.Append(string.Join("\n- ", Stages));
                 }
 
+                if (GameModes.Count > 0) {
+                    list.Append("\nBanned gamemodes:\n- ");
+                    list.Append(string.Join("\n- ", GameModes.Select(x => (GameMode)x)));
+                }
+
                 return list.ToString();
 
             case "enable":
