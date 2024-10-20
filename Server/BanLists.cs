@@ -154,6 +154,10 @@ public static class BanLists {
         Stages.Remove(stage);
     }
 
+    private static void UnbanGameMode(GameMode gameMode) {
+        GameModes.Remove((sbyte)gameMode);
+    }
+
 
     private static void Save() {
         Settings.SaveSettings(true);
@@ -387,6 +391,17 @@ public static class BanLists {
                 }
                 Save();
                 return "Unbanned stage: " + string.Join(", ", stages);
+
+            case "gamemode":
+                if (!GameMode.TryParse(val, out GameMode gameMode)) {
+                    return "Invalid gamemode value!";
+                }
+                if (!IsGameModeBanned(gameMode)) {
+                    return "Gamemode " + gameMode + " is not banned.";
+                }
+                UnbanGameMode(gameMode);
+                Save();
+                return "Unbanned gamemode: " + gameMode;
         }
     }
 }
