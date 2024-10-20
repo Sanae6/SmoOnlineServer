@@ -116,6 +116,10 @@ public static class BanLists {
         Stages.Add(stage);
     }
 
+    private static void BanGameMode(GameMode gameMode) {
+        GameModes.Add((sbyte)gameMode);
+    }
+
     private static void BanClient(Client user) {
         BanProfile(user);
         BanIPv4(user);
@@ -316,6 +320,20 @@ public static class BanLists {
                 }
                 Save();
                 return "Banned stage: " + string.Join(", ", stages);
+
+            case "gamemode":
+                if (args.Length != 1) {
+                    return "Usage: ban gamemode <gamemode>";
+                }
+                if (!GameMode.TryParse(args[0], out GameMode gameMode)) {
+                    return "Invalid gamemode value!";
+                }
+                if (IsGameModeBanned(gameMode)) {
+                    return "Gamemode " + gameMode + " is already banned.";
+                }
+                BanGameMode(gameMode);
+                Save();
+                return "Banned gamemode: " + gameMode;
         }
     }
 
