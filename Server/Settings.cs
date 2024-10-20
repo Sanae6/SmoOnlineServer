@@ -63,6 +63,7 @@ public class Settings {
         public ISet<Guid> Players { get; set; } = new SortedSet<Guid>();
         public ISet<string> IpAddresses { get; set; } = new SortedSet<string>();
         public ISet<string> Stages { get; set; } = new SortedSet<string>();
+        public ISet<sbyte> GameModes { get; set; } = new SortedSet<sbyte>();
     }
 
     public class FlipTable {

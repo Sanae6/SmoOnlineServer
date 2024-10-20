@@ -37,6 +37,12 @@ public static class BanLists {
         }
     }
 
+    private static ISet<sbyte> GameModes {
+        get {
+            return Settings.Instance.BanList.GameModes;
+        }
+    }
+
 
     private static bool IsIPv4(string str) {
         return IPAddress.TryParse(str, out IPAddress? ip)
@@ -71,6 +77,10 @@ public static class BanLists {
 
     public static bool IsStageBanned(string stage) {
         return Stages.Contains(stage);
+    }
+
+    public static bool IsGameModeBanned(GameMode gameMode) {
+        return GameModes.Contains((sbyte)gameMode);
     }
 
     public static bool IsClientBanned(Client user) {

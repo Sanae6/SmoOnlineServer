@@ -192,6 +192,12 @@ server.PacketHandler = (c, p) => {
         }
 
         case TagPacket tagPacket: {
+            if (BanLists.Enabled && BanLists.IsGameModeBanned(tagPacket.GameMode)) {
+                c.Logger.Warn($"Crashing player for entering banned gamemode {tagPacket.GameMode}.");
+                BanLists.Crash(c, 500);
+                return false;
+            }
+
             if (  (tagPacket.GameMode == GameMode.Legacy && tagPacket.UpdateType == TagPacket.TagUpdate.Both)
                 || tagPacket.GameMode == GameMode.HideAndSeek
                 || tagPacket.GameMode == GameMode.Sardines
@@ -209,6 +215,7 @@ server.PacketHandler = (c, p) => {
                 c.Metadata["time"]    = null;
             }
             c.Metadata["gameMode"] = tagPacket.GameMode;
+
             break;
         }
 
