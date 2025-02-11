@@ -14,6 +14,7 @@ CancellationTokenSource cts = new CancellationTokenSource();
 bool restartRequested = false;
 Logger consoleLogger = new Logger("Console");
 DiscordBot bot = new DiscordBot();
+HnSRandom.server = server;
 await bot.Run();
 
 async Task PersistShines()
@@ -444,6 +445,14 @@ CommandHandler.RegisterCommand("sendall", args => {
     }).Wait();
 
     return $"Sent players to {stage}:{-1}";
+});
+
+CommandHandler.RegisterCommand("randomgame", args =>
+{
+	const string optionUsage = "Usage: randomgame <int>";
+	if (args.Length < 1)
+	{ return optionUsage; }
+	return HnSRandom.StartRandomGame(args[0]);
 });
 
 CommandHandler.RegisterCommand("scenario", args => {
