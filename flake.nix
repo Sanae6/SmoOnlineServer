@@ -49,8 +49,9 @@
           fsharp-analyzers = dotnetSixTool "FSharp.Analyzers.Cli" "fsharp-analyzers";
           default = pkgs.buildDotnetModule {
             inherit projectFile testProjectFile dotnet-sdk dotnet-runtime;
-            pname = "SmoOnlineServer";
+            pname = "Server";
             version = version;
+            name = "smo-online-server-${version}";
             src = ./.;
             nugetDeps = ./nix/deps.nix; # run `nix build .#default.passthru.fetch-deps && ./result` and put the result here
             doCheck = true;
