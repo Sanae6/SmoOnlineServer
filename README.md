@@ -11,7 +11,7 @@ The official server for the [Super Mario Odyssey: Online](https://github.com/Cra
 
 ## Building (Mac/Linux Setup)
 
-Must have the [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download) and Git installed.
+Must have the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download) and Git installed.
 Run these commands in your shell:
 ```shell
 git clone https://github.com/Sanae6/SmoOnlineServer
