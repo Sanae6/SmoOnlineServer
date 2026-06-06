@@ -28,11 +28,11 @@ public struct PlayerPacket : IPacket {
 
     public void Serialize(Span<byte> data) {
         int offset = 0;
-        MemoryMarshal.Write(data[..(offset += Marshal.SizeOf<Vector3>())], ref Position);
-        MemoryMarshal.Write(data[offset..(offset += Marshal.SizeOf<Quaternion>())], ref Rotation);
+        MemoryMarshal.Write(data[..(offset += Marshal.SizeOf<Vector3>())], Position);
+        MemoryMarshal.Write(data[offset..(offset += Marshal.SizeOf<Quaternion>())], Rotation);
         AnimationBlendWeights.CopyTo(MemoryMarshal.Cast<byte, float>(data[offset..(offset += 4 * 6)]));
-        MemoryMarshal.Write(data[offset++..++offset], ref Act);
-        MemoryMarshal.Write(data[offset++..++offset], ref SubAct);
+        MemoryMarshal.Write(data[offset++..++offset], Act);
+        MemoryMarshal.Write(data[offset++..++offset], SubAct);
     }
 
     public void Deserialize(ReadOnlySpan<byte> data) {

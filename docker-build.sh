@@ -29,7 +29,7 @@ for sub in "${!archs[@]}" ; do
     -w //app/                         \
     -e DOTNET_CLI_HOME=//app/cache/   \
     -e XDG_DATA_HOME=//app/cache/     \
-    mcr.microsoft.com/dotnet/sdk:6.0  \
+    mcr.microsoft.com/dotnet/sdk:10.0  \
       dotnet  publish                 \
         ./Server/Server.csproj        \
         -r $arch                      \

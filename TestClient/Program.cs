@@ -58,7 +58,7 @@ async Task S(string n, Guid otherId, Guid ownId) {
         };
         IMemoryOwner<byte> connectOwner = MemoryPool<byte>.Shared.RentZero(Constants.HeaderSize + connect.Size);
         // coolHeader.Serialize(connectOwner.Memory.Span[..Constants.HeaderSize]);
-        MemoryMarshal.Write(connectOwner.Memory.Span[..Constants.HeaderSize], ref coolHeader);
+        MemoryMarshal.Write(connectOwner.Memory.Span[..Constants.HeaderSize], coolHeader);
         connect.Serialize(connectOwner.Memory.Span[Constants.HeaderSize..(Constants.HeaderSize + connect.Size)]);
         await stream.WriteAsync(connectOwner.Memory[..(Constants.HeaderSize + connect.Size)]);
         connectOwner.Dispose();
@@ -81,7 +81,7 @@ async Task S(string n, Guid otherId, Guid ownId) {
             Task.Run(async () => {
                 await Task.Delay(1000);
                 header.Id = ownId;
-                MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);
+                MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], header);
                 await stream.WriteAsync(owner.Memory[..(Constants.HeaderSize + header.PacketSize)]);
                 owner.Dispose();
             }).ContinueWith(x => { if (x.Exception != null) { logger.Error(x.Exception.ToString()); } });
@@ -89,7 +89,7 @@ async Task S(string n, Guid otherId, Guid ownId) {
             continue;
         }
         header.Id = ownId;
-        MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], ref header);
+        MemoryMarshal.Write(owner.Memory.Span[..Constants.HeaderSize], header);
         await stream.WriteAsync(owner.Memory[..(Constants.HeaderSize + header.PacketSize)]);
         owner.Dispose();
     }

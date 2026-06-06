@@ -9,7 +9,7 @@ public struct ShinePacket : IPacket {
     public short Size => 4;
 
     public void Serialize(Span<byte> data) {
-        MemoryMarshal.Write(data, ref ShineId);
+        MemoryMarshal.Write(data, ShineId);
     }
 
     public void Deserialize(ReadOnlySpan<byte> data) {
