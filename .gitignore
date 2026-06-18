@@ -6,6 +6,7 @@ riderModule.iml
 .idea/
 settings.json
 .vs/
+result
 
 /cache/
 /data/
